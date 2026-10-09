@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://steppe-silk-research.vercel.app/sitemap.xml
