@@ -139,6 +139,7 @@ KASPI = dict(
     line="Revenue up 60%, net income up 1%: what the Turkish deal did to Kaspi's margins.",
     art=bars(MARGIN, ["2023", "2024", "2025"], w=300, h=130, hi=2, unit="%", top=55),
     pdf="reports/kaspi-hepsiburada-2026.pdf",
+    pages=2,
 )
 TRADE = dict(
     url="research/kazakhstan-china-trade.html",
@@ -152,15 +153,17 @@ TRADE = dict(
     line="Trade more than doubled in five years, and a surplus turned into a $3.7 billion deficit.",
     art=bars(TURNOVER, YEARS, w=300, h=130, hi=5, top=40, fmt="{:.0f}"),
     pdf="reports/kazakhstan-china-trade-2026.pdf",
+    pages=3,
 )
 REPORTS = [KASPI, TRADE]
 
 
 def row(r, pre=""):
-    return f'''<a class="row" href="{pre}{r["url"]}" data-type="{r["tag"].lower()}">
+    return f'''<div class="row" data-type="{r["tag"].lower()}">
 <div class="row-date">{r["date"]}</div>
-<div class="row-main"><div class="label">{r["tag"]}</div><h3>{r["title"]}</h3><p>{r["line"]}</p></div>
-<div class="row-art">{r["art"]}</div></a>'''
+<div class="row-main"><div class="label">{r["tag"]}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
+<div class="row-actions"><a href="{pre}{r["url"]}">Read the report &rarr;</a><a class="pdf-link" href="{pre}{r["pdf"]}" download>Download PDF &darr; <span>{r["pages"]} pages</span></a></div></div>
+<div class="row-art">{r["art"]}</div></div>'''
 
 
 # Home
@@ -233,7 +236,7 @@ def report(r, findings, figures, view, facts, sources):
 <header class="report-head">
 <div class="label"><a href="../research.html#{r["tag"].lower()}">{r["tag"]}</a> &middot; Report</div>
 <h1 class="split">{r["title"]}</h1>
-<div class="byline">Chingiz Bakytzhanov &middot; {r["date_long"]} &middot; <a href="../{r["pdf"]}" target="_blank" rel="noopener">Download PDF</a></div>
+<div class="byline">Chingiz Bakytzhanov &middot; {r["date_long"]} &middot; <a href="../{r["pdf"]}" download>Download PDF ({r["pages"]} pages)</a></div>
 </header>
 <div class="facts">{kv}</div>
 <div class="report-body">
