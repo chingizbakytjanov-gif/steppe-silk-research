@@ -34,6 +34,7 @@ def page(path, title, body, active, desc):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google-site-verification" content="d7XHlEAizrVEeJg0uOvRMYoe6iXHknmiZpDfU_INxrk">
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <meta property="og:title" content="{title}">
