@@ -165,9 +165,7 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .foot-links { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
 .foot-links nav { display: flex; gap: 18px; }
 
-/* Motion: one short fade when a page opens, nothing hidden behind scrolling */
-main { animation: fade-in .3s ease-out both; }
-@keyframes fade-in { from { opacity: 0; } }
+/* Motion: none beyond colour changes on hover */
 .nav a, .row h3, .filters button, .downloads a { transition: color .15s, background .15s, border-color .15s; }
 .row[hidden] { display: none; }
 

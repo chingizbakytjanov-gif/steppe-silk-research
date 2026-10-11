@@ -65,6 +65,7 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 {ld_tag}{FONTS}
 <link rel="stylesheet" href="{pre}assets/style.css">
 <link rel="icon" href="{pre}assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{pre}assets/apple-touch-icon.png">
 <script src="{pre}assets/site.js" defer></script>
 </head>
 <body>
@@ -79,7 +80,7 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 <footer class="site-footer"><div class="wrap">
 <div class="foot-main"><div class="foot-brand">Steppe &amp; Silk Research</div>
 <p>Independent research on companies and trade in Kazakhstan, Central Asia and China. Nothing on this site is investment advice.</p></div>
-<div class="foot-links"><nav>{foot_nav}</nav><a href="mailto:{EMAIL}">{EMAIL}</a><span>&copy; 2026 {AUTHOR}</span></div>
+<div class="foot-links"><nav>{foot_nav}</nav><a href="mailto:{EMAIL}">{EMAIL}</a><span><a href="{pre}terms.html">Terms</a> &middot; <a href="{pre}privacy.html">Privacy</a> &middot; &copy; 2026 {AUTHOR}</span></div>
 </div></footer>
 </body>
 </html>
@@ -480,8 +481,8 @@ def card(c):
 
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
-<h1>Independent research on companies and trade in Kazakhstan, Central Asia and China</h1>
-<p>Company notes and trade briefs built on annual reports and official statistics. Every chart names its source, and the data behind it can be downloaded.</p>
+<h1>Research on Kazakhstan's companies and its trade with China</h1>
+<p>Two reports so far: what the Hepsiburada deal did to Kaspi.kz, and what Kazakhstan sells to and buys from China. Each one links its sources, and the data can be downloaded.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -576,7 +577,6 @@ about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></s
 <li>Opinions are kept apart from facts, in a section called "My view".</li>
 <li>Nothing on this site is investment advice.</li>
 </ul>
-<p class="note">AI tools help collect data, run calculations and polish the English. The analysis and the conclusions are the author's own.</p>
 <h2>Corrections</h2>
 <p>If you find an error, please email me. Corrections are made openly and listed at the end of the report with their date.</p>
 <h2>About the author</h2>
@@ -589,6 +589,42 @@ about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></s
 page("about.html", "About · Steppe & Silk Research", about, "about.html",
      "About Steppe & Silk Research, how its research is made, and its author.")
 
+
+# ---------- Terms and Privacy ----------
+
+terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p>Last updated 11 October 2026</p></div></section>
+<section class="block"><div class="wrap"><div class="prose">
+<h2>Not investment advice</h2>
+<p>Everything on Steppe &amp; Silk Research is published for information and education. It is not a recommendation to buy, sell or hold any security, and it does not take into account anyone's financial situation. Do your own research before making any investment decision.</p>
+<h2>Accuracy</h2>
+<p>The figures come from annual reports and official statistics, and each report links its sources. Mistakes can still happen, and sources are sometimes revised. The content is provided as it is, without any guarantee that it is complete or current. If you find an error, please write to <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
+<h2>Using the content</h2>
+<p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
+<h2>Third-party sources and links</h2>
+<p>Company names and trademarks belong to their owners. Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
+<h2>Changes</h2>
+<p>These terms may be updated. The date at the top shows the latest version.</p>
+</div></div></section>'''
+page("terms.html", "Terms of use · Steppe & Silk Research", terms, "",
+     "Terms of use for Steppe & Silk Research.")
+
+privacy = f'''<section class="page-head"><div class="wrap"><h1>Privacy policy</h1><p>Last updated 11 October 2026</p></div></section>
+<section class="block"><div class="wrap"><div class="prose">
+<p class="lead">This site does not use cookies, analytics or advertising trackers, and it has no accounts or forms.</p>
+<h2>What is collected</h2>
+<ul>
+<li><b>Server logs.</b> The site is hosted by Vercel. Like any web host, Vercel records technical data such as your IP address, browser and the pages requested, to deliver the site and protect it from abuse.</li>
+<li><b>Fonts.</b> The typefaces are loaded from Google Fonts, so your browser sends your IP address to Google when a page opens.</li>
+<li><b>Email.</b> If you write to <a href="mailto:{EMAIL}">{EMAIL}</a>, your message and address are kept only to reply to you and are never shared or sold.</li>
+</ul>
+<h2>Your rights</h2>
+<p>You can ask what information about you is held and ask for it to be deleted by writing to the address above.</p>
+<h2>Changes</h2>
+<p>If this policy changes, the date at the top will change too.</p>
+</div></div></section>'''
+page("privacy.html", "Privacy policy · Steppe & Silk Research", privacy, "",
+     "Privacy policy for Steppe & Silk Research.")
+
 # Old addresses keep working.
 redirect("companies.html", "research.html#companies")
 redirect("trade.html", "research.html#trade")
@@ -596,7 +632,7 @@ redirect("contact.html", "about.html#contact")
 
 # ---------- Sitemap, assets, link-preview cards ----------
 
-urls = ["", "research.html", "data.html", "about.html"] + [r["url"] for r in REPORTS]
+urls = ["", "research.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
       + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-11</lastmod></url>\n" for u in urls) + "</urlset>\n")
 
@@ -622,7 +658,7 @@ cards = {r["slug"]: (f'<div class="top"><span>Steppe &amp; Silk Research</span><
                      f'<div class="foot"><span>{AUTHOR} &middot; {r["date_long"]}</span><span>steppesilk.com</span></div>')
          for r in REPORTS}
 cards["home"] = ('<div class="top"><span>Steppe &amp; Silk Research</span><b>steppesilk.com</b></div>'
-                 '<div class="mid"><div><h1 style="font-size:46px">Independent research on companies and trade in Kazakhstan, Central Asia and China</h1>'
+                 '<div class="mid"><div><h1 style="font-size:50px">Research on Kazakhstan\'s companies and its trade with China</h1>'
                  '<div class="cap">Company notes and trade briefs, with the data behind every chart.</div></div>'
                  '<div class="chart"><div class="cap" style="margin:0 0 6px;font-size:18px">Kazakhstan–China trade, $ billion</div>'
                  f'{columns([("Turnover", GREY, TURNOVER)], YEARS, w=420, h=280, hi=5, top=40, fmt="{:.0f}")}</div></div>'
