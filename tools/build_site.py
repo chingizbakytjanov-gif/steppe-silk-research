@@ -482,7 +482,7 @@ def card(c):
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>There are two reports so far. One looks at what buying Hepsiburada did to Kaspi.kz. The other looks at what Kazakhstan sells to China and what it buys back. Sources are linked and the data can be downloaded.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz after its acquisition of Hepsiburada and Kazakhstan's trade with China. Every source is cited, and the underlying data is available to download.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -567,23 +567,22 @@ page("data.html", "Data · Steppe & Silk Research", data_page, "data.html",
 
 about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></section>
 <section class="block"><div class="wrap"><div class="prose">
-<p class="lead">Steppe &amp; Silk Research is a small research site I started in 2026. I write about Kazakh companies and about Kazakhstan's trade with China.</p>
-<p>There are two formats. <b>Company notes</b> explain how a company makes money and what has changed, based on its annual report. <b>Trade briefs</b> show what Kazakhstan sells and buys, based on official statistics.</p>
-<h2>How I work</h2>
+<p class="lead">Steppe &amp; Silk Research is an independent research publication covering companies in Kazakhstan and the country's trade with China. It was founded in 2026 by Chingiz Bakytzhanov.</p>
+<p>The publication produces two formats. <b>Company notes</b> examine how a company earns its money and what has changed in its results, based on its annual report. <b>Trade briefs</b> analyse what Kazakhstan exports and imports, based on official statistics.</p>
+<h2>Editorial standards</h2>
 <ul>
-<li>I take numbers from annual reports and official statistics and link every source.</li>
-<li>You can <a href="data.html">download</a> the data behind each chart.</li>
-<li>Kazakh and Chinese trade data often disagree. When they do, I say which numbers I use.</li>
-<li>My own opinion goes only in the "My view" section.</li>
-<li>None of this is investment advice.</li>
+<li>Figures are taken from company filings and official statistics, and every source is cited with a link.</li>
+<li>The data behind each chart is published and can be <a href="data.html">downloaded</a>.</li>
+<li>Where sources disagree, as Kazakh and Chinese trade statistics often do, each report states which figures it uses and why.</li>
+<li>Analysis and opinion are kept separate. The author's own assessment appears only in the "My view" section of each report.</li>
+<li>Nothing published here is investment advice.</li>
 </ul>
 <h2>Corrections</h2>
-<p>If you find a mistake, email me. I fix it and note the change and the date at the end of the report.</p>
-<h2>About the author</h2>
-<p>I am Chingiz Bakytzhanov, an 18-year-old student from Kazakhstan. I speak Kazakh, Russian and English, and I plan to study finance because it explains how money and businesses really work. My interest in finance began when I became Director of Business and Finance at Earth Ambassadors, a youth organisation.</p>
-<p>The idea for Steppe &amp; Silk Research came to me in September 2026, when I started looking at how Kazakhstan trades with China. I published the first two reports in October 2026.</p>
+<p>Errors are corrected openly. Each correction is noted at the end of the report with its date. Readers who spot a mistake can contact the editor at <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
+<h2>Founder and editor</h2>
+<p>Chingiz Bakytzhanov is the founder and editor of Steppe &amp; Silk Research and the author of its reports. He is a student from Kazakhstan with a focus on finance, and he works in Kazakh, Russian and English. Before founding the publication he served as Director of Business and Finance at Earth Ambassadors, a youth organisation.</p>
 <h2 id="contact">Contact</h2>
-<p>For questions about the research, collaboration or feedback, please write to me.</p>
+<p>For questions about the research, data requests, corrections or collaboration, contact the editor.</p>
 <ul class="contact-list"><li><span>Email</span><a href="mailto:{EMAIL}">{EMAIL}</a></li></ul>
 </div></div></section>'''
 page("about.html", "About · Steppe & Silk Research", about, "about.html",
