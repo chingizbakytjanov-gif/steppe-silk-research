@@ -79,7 +79,7 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot-main"><div class="foot-brand">Steppe &amp; Silk Research</div>
-<p>Independent research on companies and trade in Kazakhstan, Central Asia and China. Nothing on this site is investment advice.</p></div>
+<p>Reports on Kazakh companies and on Kazakhstan's trade with China. Not investment advice.</p></div>
 <div class="foot-links"><nav>{foot_nav}</nav><a href="mailto:{EMAIL}">{EMAIL}</a><span><a href="{pre}terms.html">Terms</a> &middot; <a href="{pre}privacy.html">Privacy</a> &middot; &copy; 2026 {AUTHOR}</span></div>
 </div></footer>
 </body>
@@ -190,7 +190,7 @@ SRC_KASPI = [
 SRC_TRADE = [
     ("Embassy of Kazakhstan in China, Trade and economic cooperation (2024 data, SRC and GACC)",
      "https://www.gov.kz/memleket/entities/mfa-beijing/activities/2110?lang=en"),
-    ("Association of Financiers of Kazakhstan, Kazakhstan–China commodity turnover, March 2026 (BNS data)",
+    ("Association of Financiers of Kazakhstan, Kazakhstan-China commodity turnover, March 2026 (BNS data)",
      "https://afk.kz/2026/03/Kazakhstan-China-Commodity-Turnover-March2026.pdf"),
     ("Kazinform, Trade between Kazakhstan and China exceeded $31 billion in 2023",
      "https://www.inform.kz/ru/tovarooborot-mezhdu-kazahstanom-i-kitaem-v-2023-godu-previsil-31-mlrd-d0a0bc"),
@@ -219,7 +219,7 @@ KASPI = dict(
     kind="Company note",
     title="Bigger but Less Profitable: Kaspi.kz after the Hepsiburada Acquisition",
     date="8 Oct 2026", date_long="8 October 2026", iso="2026-10-08",
-    line="Revenue up 60%, net income up 1%: what the Turkish deal did to Kaspi's margins.",
+    line="Revenue grew 60% in 2025, but net income grew only 1%.",
     summary=("In January 2025 Kaspi.kz bought a controlling stake in Hepsiburada, a leading Turkish online "
              "marketplace. The deal lifted revenue by 60% in 2025 but left net income almost flat, cutting the "
              "net margin from 41.7% to 26.4%. The Kazakh business stayed highly profitable; the fall comes from Turkey."),
@@ -236,14 +236,14 @@ TRADE = dict(
     url="research/kazakhstan-china-trade.html",
     tag="Trade",
     kind="Trade brief",
-    title="Raw Materials Out, Machines In: Kazakhstan's Trade with China, 2020–2025",
+    title="Raw Materials Out, Machines In: Kazakhstan's Trade with China, 2020-2025",
     date="8 Oct 2026", date_long="8 October 2026", iso="2026-10-08",
     line="Trade more than doubled in five years, and a surplus turned into a $3.7 billion deficit.",
     summary=("Trade between Kazakhstan and China more than doubled, from $15.4 billion to $34.1 billion. Kazakhstan "
              "still sells mostly raw materials and buys machinery, electronics and vehicles. Since 2023 it has run a "
              "trade deficit with China, which reached $3.7 billion in 2025."),
     art=columns([("Turnover", GREY, TURNOVER)], YEARS, w=300, h=150, hi=5, top=40, fmt="{:.0f}",
-                desc="Kazakhstan–China trade turnover, $ billion, 2020 to 2025: 15, 18, 24, 32, 30, 34"),
+                desc="Kazakhstan-China trade turnover, $ billion, 2020 to 2025: 15, 18, 24, 32, 30, 34"),
     art_title="Trade turnover, $ bn",
     pdf="reports/kazakhstan-china-trade-2026.pdf", pages=3,
     data="data/kazakhstan-china-trade-2020-2025",
@@ -257,7 +257,7 @@ def row(r, pre=""):
     return f'''<div class="row" data-type="{r["tag"].lower()}">
 <div class="row-date"><time datetime="{r["iso"]}">{r["date"]}</time></div>
 <div class="row-main"><div class="label">{r["kind"]}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
-<div class="row-actions"><a href="{pre}{r["url"]}">Read &rarr;</a><a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a><a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
+<div class="row-actions"><a href="{pre}{r["url"]}">Read</a><a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a><a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
 
 
@@ -298,7 +298,7 @@ def data_files(base, title, source_note, sheets):
     wb.save(os.path.join(OUT, base + ".xlsx"))
 
 
-data_files(KASPI["data"], "Kaspi.kz key financials, 2023–2025 (₸ million unless stated)",
+data_files(KASPI["data"], "Kaspi.kz key financials, 2023-2025 (₸ million unless stated)",
            ["Source: Kaspi.kz Form 20-F for 2025, segment and earnings notes (pp. F-33 to F-42).",
             "Segment revenue is before inter-segment eliminations and customer rewards, so segments do not add up exactly to total revenue.",
             "Growth rates, margins and shares are calculated from these figures."],
@@ -309,9 +309,9 @@ data_files(KASPI["data"], "Kaspi.kz key financials, 2023–2025 (₸ million unl
             ("Turkey 2025", ["2025, ₸ million", "Segment revenue", "Net income"],
              [["Turkey (Hepsiburada)", 1031592, -93018], ["Kazakhstan and other markets", 3070369, 1160725]])])
 
-data_files(TRADE["data"], "Kazakhstan's goods trade with China, 2020–2025 ($ billion)",
+data_files(TRADE["data"], "Kazakhstan's goods trade with China, 2020-2025 ($ billion)",
            ["Kazakh data: Bureau of National Statistics, Ministry of Trade and Integration, State Revenue Committee, as published by government bodies and national media.",
-            "2020–2021 figures come from news reports citing official bodies and are less reliable than later years.",
+            "2020-2021 figures come from news reports citing official bodies and are less reliable than later years.",
             "2022 turnover is the sum of exports and imports. The 2023 import figure is an early estimate, later revised to about $15.4 billion.",
             "Chinese data: General Administration of Customs of China (GACC). The two series differ and should not be mixed.",
             "Product groups: Kazakhstan's data reported to UN Comtrade, via Trading Economics."],
@@ -398,7 +398,7 @@ kaspi_sections = f'''<h2>Key findings</h2><ol>
 {table(["", *K_YEARS],
        [["Payments", *map(n0, K_PAY)], ["Marketplace", *map(n0, K_MKT)], ["Fintech", *map(n0, K_FIN)],
         ["**Total revenue", *map(n0, K_REV)], ["**Net income", *map(n0, K_NI)],
-        ["Revenue growth", "–", "+32.3%", "+59.8%"], ["Net income growth", "–", "+24.5%", "+1.0%"],
+        ["Revenue growth", "n/a", "+32.3%", "+59.8%"], ["Net income growth", "n/a", "+24.5%", "+1.0%"],
         ["Net margin", *[f"{v}%" for v in K_MARGIN]], ["Marketplace share of segment revenue", *[f"{v}%" for v in K_MKT_SHARE]]])}
 <p class="table-note">Segment revenue is before inter-segment eliminations and customer rewards. Source: {src_link(0, SRC_KASPI)}.</p>
 <h2>Risks</h2><ol>
@@ -423,7 +423,7 @@ trade_sections = f'''<h2>Key findings</h2><ol>
 {fig(1, "Kazakhstan's exports to and imports from China, $ billion",
      columns([("Exports to China", GREY, EXPORTS), ("Imports from China", ACCENT, IMPORTS)], YEARS, w=560, h=260, top=22,
              desc="Exports grew from 9.0 to 15.2 billion dollars; imports from 6.4 to 18.9 billion"),
-     "Kazakh official statistics, see sources 1–6", TRADE["data"])}
+     "Kazakh official statistics, see sources 1-6", TRADE["data"])}
 <p>Imports from China nearly tripled, from $6.4 billion to $18.9 billion, while exports rose by about two thirds. The balance changed sign in 2023, and in 2025 the deficit reached $3.7 billion as imports grew by 24% and exports by only 2%.</p>
 <div class="table-title">Table 1. Kazakhstan's goods trade with China, $ billion (Kazakh data)</div>
 {table(["", *YEARS],
@@ -458,16 +458,16 @@ report(TRADE, trade_sections,
 # Companies and countries the research covers; every number comes from a report on the site.
 COVERAGE = [
     dict(code="KSPI", tag="Company · Kazakhstan", name="Kaspi.kz", band="#d9352b",
-         what="Payments, marketplace and fintech super app", r=KASPI,
+         what="Payments, online shopping and loans in one app", r=KASPI,
          stats=[("Revenue, 2025", "₸4.05 trn"), ("Revenue growth", "+60%"), ("Net margin", "26.4%")]),
     dict(code="HEPS", tag="Company · Turkey", name="Hepsiburada", band="#e8590c",
          what="E-commerce marketplace, controlled by Kaspi since 2025", r=KASPI,
          stats=[("Segment revenue, 2025", "₸1.03 trn"), ("Net loss, 2025", "₸93 bn"), ("Kaspi's stake, Jan 2026", "85%")]),
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
-         what="Largest economy in Central Asia", r=TRADE,
+         what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
     dict(code="CN", tag="Country", name="China", band="#b8261c",
-         what="Buys Kazakh raw materials, sells machinery and goods", r=TRADE,
+         what="Kazakhstan's main trading partner in these reports", r=TRADE,
          stats=[("Goods to Kazakhstan, 2025", "$18.9 bn"), ("Same flow, Chinese data", "$29.7 bn"), ("Top buy from Kazakhstan", "Ores")]),
 ]
 
@@ -476,13 +476,13 @@ def card(c):
     return (f'<a class="card" href="{c["r"]["url"]}"><div class="card-band" style="background:{c["band"]}"><b>{c["code"]}</b><span>{c["tag"]}</span></div>'
             f'<div class="card-body"><h3>{c["name"]}</h3><p class="muted">{c["what"]}</p>'
             '<ul class="card-stats">' + "".join(f'<li><span>{k}</span><b>{v}</b></li>' for k, v in c["stats"]) + '</ul>'
-            f'<span class="card-more">{c["r"]["kind"]} &rarr;</span></div></a>')
+            f'<span class="card-more">{c["r"]["kind"]}</span></div></a>')
 
 
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Two reports so far: what the Hepsiburada deal did to Kaspi.kz, and what Kazakhstan sells to and buys from China. Each one links its sources, and the data can be downloaded.</p>
+<p>There are two reports so far. One looks at what buying Hepsiburada did to Kaspi.kz. The other looks at what Kazakhstan sells to China and what it buys back. Sources are linked and the data can be downloaded.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -493,7 +493,7 @@ home = f'''<section class="masthead"><div class="wrap">
 <h2><a href="{F["url"]}">{F["title"]}</a></h2>
 <p class="dek">{F["line"]}</p>
 <p>{F["summary"]}</p>
-<div class="row-actions"><a href="{F["url"]}">Read the brief &rarr;</a><a class="pdf-link" href="{F["pdf"]}" download>PDF <span>{F["pages"]} pp.</span></a><a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
+<div class="row-actions"><a href="{F["url"]}">Read the brief</a><a class="pdf-link" href="{F["pdf"]}" download>PDF <span>{F["pages"]} pp.</span></a><a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
 </div>
 <figure class="figure featured-chart"><div class="fig-title">Kazakhstan's exports to and imports from China, $ billion</div>
 {columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22, desc="Exports and imports, 2020 to 2025")}
@@ -502,24 +502,24 @@ home = f'''<section class="masthead"><div class="wrap">
 </div></section>
 
 <section class="block"><div class="wrap">
-<div class="block-head"><h2>Research</h2><a href="research.html">All research &rarr;</a></div>
+<div class="block-head"><h2>Research</h2><a href="research.html">All research</a></div>
 <div class="rows">{"".join(row(r) for r in REPORTS[1:])}</div>
 </div></section>
 
 <section class="block"><div class="wrap">
-<div class="block-head"><h2>Coverage</h2><a href="research.html">All research &rarr;</a></div>
+<div class="block-head"><h2>Coverage</h2><a href="research.html">All research</a></div>
 <div class="cards">{"".join(card(c) for c in COVERAGE)}</div>
 </div></section>
 
 <section class="block block-tint"><div class="wrap">
-<div class="block-head"><h2>Data</h2><a href="data.html">All data &rarr;</a></div>
-<p class="block-lead">The figures behind every report, free to download and reuse with attribution.</p>
+<div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
+<p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
-    dict(name="Kazakhstan–China goods trade", cover="2020–2025 · Kazakh and Chinese data · top products", base=TRADE["data"]),
-    dict(name="Kaspi.kz key financials", cover="2023–2025 · revenue by segment, net income, margins", base=KASPI["data"])])}</div>
+    dict(name="Kazakhstan-China goods trade", cover="2020-2025 · Kazakh and Chinese data · top products", base=TRADE["data"]),
+    dict(name="Kaspi.kz key financials", cover="2023-2025 · revenue by segment, net income, margins", base=KASPI["data"])])}</div>
 </div></section>'''
 page("index.html", "Steppe & Silk Research", home, "",
-     "Independent research on companies and trade in Kazakhstan, Central Asia and China, with the data behind every chart.",
+     "Reports on Kazakh companies and on Kazakhstan's trade with China, with the data behind each chart.",
      ld={"@context": "https://schema.org", "@type": "WebSite", "name": "Steppe & Silk Research", "url": SITE})
 
 # ---------- Research ----------
@@ -542,10 +542,10 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
-    dict(name="Kazakhstan–China goods trade", cover="2020–2025", unit="$ billion",
+    dict(name="Kazakhstan-China goods trade", cover="2020-2025", unit="$ billion",
          what="Exports, imports, turnover and balance (Kazakh data); the same trade in Chinese customs data; top five product groups in 2024.",
          src="Bureau of National Statistics of Kazakhstan; GACC; UN Comtrade", base=TRADE["data"], r=TRADE),
-    dict(name="Kaspi.kz key financials", cover="2023–2025", unit="₸ million",
+    dict(name="Kaspi.kz key financials", cover="2023-2025", unit="₸ million",
          what="Revenue by segment, total revenue, net income, net margin, Marketplace share; Turkey vs. other markets in 2025.",
          src="Kaspi.kz Form 20-F, 2025", base=KASPI["data"], r=KASPI),
 ]
@@ -554,7 +554,7 @@ drows = "".join(f'''<tr><td><b>{d["name"]}</b><br><span class="muted">{d["what"]
 <td><a href="{d["r"]["url"]}">{d["r"]["title"].split(":")[0]}</a></td></tr>''' for d in DATASETS)
 data_page = f'''<section class="page-head"><div class="wrap">
 <h1>Data</h1>
-<p>The figures behind every report. Each file names its sources and notes what the numbers do and do not include. Free to reuse with attribution to Steppe &amp; Silk Research.</p>
+<p>The numbers used in each report. Every file lists its sources and what the numbers include. You can reuse them if you credit Steppe &amp; Silk Research.</p>
 </div></section>
 <section class="block"><div class="wrap">
 <div class="table-wrap"><table class="data-table datasets"><thead><tr><th>Dataset</th><th>Years</th><th>Unit</th><th>Source</th><th>Download</th><th>Used in</th></tr></thead>
@@ -567,18 +567,18 @@ page("data.html", "Data · Steppe & Silk Research", data_page, "data.html",
 
 about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></section>
 <section class="block"><div class="wrap"><div class="prose">
-<p class="lead">Steppe &amp; Silk Research publishes independent research on companies and trade in Kazakhstan, Central Asia and China.</p>
+<p class="lead">Steppe &amp; Silk Research is a small research site I started in 2026. I write about Kazakh companies and about Kazakhstan's trade with China.</p>
 <p>There are two formats. <b>Company notes</b> explain how a company makes money and what has changed, based on its annual report. <b>Trade briefs</b> show what Kazakhstan sells and buys, based on official statistics.</p>
-<h2>How the research is made</h2>
+<h2>How I work</h2>
 <ul>
-<li>Numbers come from annual reports and official statistics, and every source is linked.</li>
-<li>The data behind each chart can be <a href="data.html">downloaded</a>.</li>
-<li>When two sources disagree, as Kazakh and Chinese trade data do, the report says whose numbers it uses.</li>
-<li>Opinions are kept apart from facts, in a section called "My view".</li>
-<li>Nothing on this site is investment advice.</li>
+<li>I take numbers from annual reports and official statistics and link every source.</li>
+<li>You can <a href="data.html">download</a> the data behind each chart.</li>
+<li>Kazakh and Chinese trade data often disagree. When they do, I say which numbers I use.</li>
+<li>My own opinion goes only in the "My view" section.</li>
+<li>None of this is investment advice.</li>
 </ul>
 <h2>Corrections</h2>
-<p>If you find an error, please email me. Corrections are made openly and listed at the end of the report with their date.</p>
+<p>If you find a mistake, email me. I fix it and note the change and the date at the end of the report.</p>
 <h2>About the author</h2>
 <p>I am Chingiz Bakytzhanov, an 18-year-old student from Kazakhstan. I speak Kazakh, Russian and English, and I plan to study finance because it explains how money and businesses really work. My interest in finance began when I became Director of Business and Finance at Earth Ambassadors, a youth organisation.</p>
 <p>The idea for Steppe &amp; Silk Research came to me in September 2026, when I started looking at how Kazakhstan trades with China. I published the first two reports in October 2026.</p>
@@ -660,7 +660,7 @@ cards = {r["slug"]: (f'<div class="top"><span>Steppe &amp; Silk Research</span><
 cards["home"] = ('<div class="top"><span>Steppe &amp; Silk Research</span><b>steppesilk.com</b></div>'
                  '<div class="mid"><div><h1 style="font-size:50px">Research on Kazakhstan\'s companies and its trade with China</h1>'
                  '<div class="cap">Company notes and trade briefs, with the data behind every chart.</div></div>'
-                 '<div class="chart"><div class="cap" style="margin:0 0 6px;font-size:18px">Kazakhstan–China trade, $ billion</div>'
+                 '<div class="chart"><div class="cap" style="margin:0 0 6px;font-size:18px">Kazakhstan-China trade, $ billion</div>'
                  f'{columns([("Turnover", GREY, TURNOVER)], YEARS, w=420, h=280, hi=5, top=40, fmt="{:.0f}")}</div></div>'
                  f'<div class="foot"><span>{AUTHOR}</span><span>Kazakhstan &middot; Central Asia &middot; China</span></div>')
 for slug, inner in cards.items():
