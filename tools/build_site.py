@@ -19,7 +19,7 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400'
          '&display=swap" rel="stylesheet">')
 
-INK, GREY, ACCENT, MUTED = "#161616", "#b9b9b4", "#a63d1f", "#6b6b6b"
+INK, GREY, ACCENT, MUTED = "#14202e", "#cfc6b8", "#0b6e79", "#6f7884"
 CHART_FONT = "IBM Plex Sans,Arial"
 
 NAV = [("research.html", "Research"), ("data.html", "Data"), ("about.html", "About")]
@@ -453,6 +453,31 @@ report(TRADE, trade_sections,
 
 # ---------- Home ----------
 
+
+# Companies and countries the research covers; every number comes from a report on the site.
+COVERAGE = [
+    dict(code="KSPI", tag="Company · Kazakhstan", name="Kaspi.kz", band="#d9352b",
+         what="Payments, marketplace and fintech super app", r=KASPI,
+         stats=[("Revenue, 2025", "₸4.05 trn"), ("Revenue growth", "+60%"), ("Net margin", "26.4%")]),
+    dict(code="HEPS", tag="Company · Turkey", name="Hepsiburada", band="#e8590c",
+         what="E-commerce marketplace, controlled by Kaspi since 2025", r=KASPI,
+         stats=[("Segment revenue, 2025", "₸1.03 trn"), ("Net loss, 2025", "₸93 bn"), ("Kaspi's stake, Jan 2026", "85%")]),
+    dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
+         what="Largest economy in Central Asia", r=TRADE,
+         stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
+    dict(code="CN", tag="Country", name="China", band="#b8261c",
+         what="Buys Kazakh raw materials, sells machinery and goods", r=TRADE,
+         stats=[("Goods to Kazakhstan, 2025", "$18.9 bn"), ("Same flow, Chinese data", "$29.7 bn"), ("Top buy from Kazakhstan", "Ores")]),
+]
+
+
+def card(c):
+    return (f'<a class="card" href="{c["r"]["url"]}"><div class="card-band" style="background:{c["band"]}"><b>{c["code"]}</b><span>{c["tag"]}</span></div>'
+            f'<div class="card-body"><h3>{c["name"]}</h3><p class="muted">{c["what"]}</p>'
+            '<ul class="card-stats">' + "".join(f'<li><span>{k}</span><b>{v}</b></li>' for k, v in c["stats"]) + '</ul>'
+            f'<span class="card-more">{c["r"]["kind"]} &rarr;</span></div></a>')
+
+
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Independent research on companies and trade in Kazakhstan, Central Asia and China</h1>
@@ -478,6 +503,11 @@ home = f'''<section class="masthead"><div class="wrap">
 <section class="block"><div class="wrap">
 <div class="block-head"><h2>Research</h2><a href="research.html">All research &rarr;</a></div>
 <div class="rows">{"".join(row(r) for r in REPORTS[1:])}</div>
+</div></section>
+
+<section class="block"><div class="wrap">
+<div class="block-head"><h2>Coverage</h2><a href="research.html">All research &rarr;</a></div>
+<div class="cards">{"".join(card(c) for c in COVERAGE)}</div>
 </div></section>
 
 <section class="block block-tint"><div class="wrap">
@@ -576,14 +606,14 @@ for name in ("style.css", "site.js"):
         write("assets/" + name, a.read())
 
 # 1200x630 cards; tools/render_og.js turns them into og/*.png
-OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#fff;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
+OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#faf7f2;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
           ".c{box-sizing:border-box;width:1200px;height:630px;padding:56px 64px;display:flex;flex-direction:column;border-top:14px solid " + ACCENT + "}"
           ".top{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:20px;letter-spacing:1px;text-transform:uppercase}"
           ".top b{color:" + ACCENT + ";font-weight:500}.mid{flex:1;display:flex;gap:48px;align-items:center}"
           "h1{font-family:'IBM Plex Serif',Georgia,serif;font-size:50px;line-height:1.15;margin:0 0 28px;font-weight:600}"
           ".num{font-family:'IBM Plex Serif',Georgia,serif;font-size:76px;font-weight:600;color:" + ACCENT + ";line-height:1}"
-          ".cap{font-size:24px;color:#4d4d4d;margin-top:8px}.chart{width:420px;flex:none}"
-          ".foot{display:flex;justify-content:space-between;font-size:22px;color:#4d4d4d;border-top:2px solid " + INK + ";padding-top:18px}")
+          ".cap{font-size:24px;color:#4a5562;margin-top:8px}.chart{width:420px;flex:none}"
+          ".foot{display:flex;justify-content:space-between;font-size:22px;color:#4a5562;border-top:2px solid " + INK + ";padding-top:18px}")
 og_dir = os.path.join(HERE, "og")
 os.makedirs(og_dir, exist_ok=True)
 cards = {r["slug"]: (f'<div class="top"><span>Steppe &amp; Silk Research</span><b>{r["kind"]}</b></div>'
