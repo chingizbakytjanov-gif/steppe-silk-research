@@ -129,13 +129,13 @@ def columns(series, labels, w=480, h=250, fmt="{:.1f}", unit="", top=None, hi=No
     return "".join(out)
 
 
-def hbars(rows, unit="", colour=GREY):
+def hbars(rows, unit="", colour=GREY, fmt="{:.2f}"):
     """Horizontal bars in HTML, so long labels stay readable on phones."""
     top = max(v for _, v in rows)
     items = "".join(
         f'<div class="hbar"><div class="hbar-label">{lab}</div>'
         f'<div class="hbar-track"><span style="width:{v/top*100:.1f}%;background:{colour}"></span></div>'
-        f'<div class="hbar-val">{v:.2f}{unit}</div></div>' for lab, v in rows)
+        f'<div class="hbar-val">{fmt.format(v)}{unit}</div></div>' for lab, v in rows)
     return f'<div class="hbars">{items}</div>'
 
 
@@ -208,8 +208,9 @@ SRC_TRADE = [
 
 
 def src_link(i, srcs, pre="../"):
-    name, url = srcs[i]
-    return f'<a href="{url}" rel="noopener">{name.split(",")[0]}</a>'
+    name, url = srcs[i][:2]
+    short = srcs[i][2] if len(srcs[i]) > 2 else name.split(",")[0]
+    return f'<a href="{url}" rel="noopener">{short}</a>'
 
 
 KASPI = dict(
@@ -253,11 +254,17 @@ TRADE = dict(
 REPORTS = [TRADE, KASPI]  # newest first; the first one is featured on the home page
 
 
+def pdf_link(r, pre=""):
+    if not r.get("pdf"):
+        return ""
+    return f'<a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a>'
+
+
 def row(r, pre=""):
     return f'''<div class="row" data-type="{r["tag"].lower()}">
 <div class="row-date"><time datetime="{r["iso"]}">{r["date"]}</time></div>
 <div class="row-main"><div class="label">{r["kind"]}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
-<div class="row-actions"><a href="{pre}{r["url"]}">Read</a><a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a><a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
+<div class="row-actions"><a href="{pre}{r["url"]}">Read</a>{pdf_link(r, pre)}<a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
 
 
@@ -330,10 +337,11 @@ data_files(TRADE["data"], "Kazakhstan's goods trade with China, 2020-2025 ($ bil
 def report(r, sections, facts, sources, disclaimer=False):
     pre = "../"
     kv = "".join(f'<div class="fact"><div class="fact-num">{v}</div><div class="fact-label">{k}</div></div>' for k, v in facts)
-    srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in sources)
+    srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u, *_ in sources)
     cite = (f'{AUTHOR} (2026). <i>{r["title"]}</i>. Steppe &amp; Silk Research, {r["date_long"]}. '
             f'{SITE}/{r["url"]}')
-    dl = (f'<div class="downloads"><a href="{pre}{r["pdf"]}" download>Full report <span>PDF, {r["pages"]} pp.</span></a>'
+    full = (f'<a href="{pre}{r["pdf"]}" download>Full report <span>PDF, {r["pages"]} pp.</span></a>' if r.get("pdf") else "")
+    dl = (f'<div class="downloads">{full}'
           f'<a href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a>'
           f'<a href="{pre}{r["data"]}.csv" download>Data <span>CSV</span></a></div>')
     warn = ('<p class="disclaimer">This note is independent research for information and learning. '
@@ -452,6 +460,241 @@ report(TRADE, trade_sections,
         ("Balance, 2025", "−$3.7 bn"), ("China's share of KZ trade", "23.7%")], SRC_TRADE)
 
 
+# ---------- New reports, October 2026 ----------
+
+def view(name):
+    """The author's own "My view" text. The section is left out until the file has text in it."""
+    path = os.path.join(HERE, name)
+    text = open(path).read().strip() if os.path.exists(path) else ""
+    return f'<h2>My view</h2><blockquote class="view">{text}</blockquote>' if text else ""
+
+
+# Kazatomprom: company reports for 2023-2025 and the first half of 2026
+U_YEARS = ["2023", "2024", "2025"]
+U_PROD = [21112, 23270, 25839]          # tU, 100% basis
+U_SALES = [18069, 16670, 18494]         # Group U3O8 sales, tU
+U_PRICE = [55.09, 69.48, 65.32]         # Group average realized price, $/lb U3O8
+U_SPOT = [60.53, 86.28, 72.75]          # average weekly spot price, $/lb U3O8
+U_REV = [1435, 1813, 1803]              # revenue, ₸ billion
+U_EBITDA = [829, 1097, 1133]            # adjusted EBITDA, ₸ billion
+U_ADJ_NP = [None, 577, 570]             # adjusted net profit attributable to owners, ₸ billion
+U_H1 = dict(rev=(660.2, 717.8), np=(263.2, 240.4), price=(58.54, 67.88), spot=(69.11, 85.98), sales=(7625, 7586))
+
+SRC_KAP = [
+    ("Kazatomprom, Operating and Financial Review for 2025 (20 March 2026)",
+     "https://www.kazatomprom.kz/storage/86/fy2025_ofr_eng.pdf", "Kazatomprom, 2025 review"),
+    ("Kazatomprom, Kazatomprom announces 2025 Full Year Financial Results (20 March 2026)",
+     "https://www.kazatomprom.kz/en/media/view/announces_2025_full_year_financial_results_"),
+    ("Kazatomprom, Operating and Financial Review for 2024 (19 March 2025)",
+     "https://www.kazatomprom.kz/storage/c0/fy2024_ofr_eng.pdf", "2024 review"),
+    ("Kazatomprom, Operating and Financial Review for 2023 (15 March 2024)",
+     "https://www.kazatomprom.kz/storage/29/fy2023_ofr_eng.pdf", "2023 review"),
+    ("Kazatomprom, Kazatomprom announces 1H2026 Financial Results (21 August 2026)",
+     "https://www.kazatomprom.kz/en/media/view/Kazatomprom%20announces%201H2026%20Financial%20Results"),
+    ("Kazatomprom, Operating and Financial Review for the first half of 2026 (21 August 2026)",
+     "https://www.kazatomprom.kz/storage/9f/6m_2026_ofr_eng.pdf", "first-half 2026 review"),
+    ("Kazatomprom, 1H2025 Results and 2026 Production Strategy (August 2025, London Stock Exchange RNS)",
+     "https://www.investegate.co.uk/announcement/rns/joint-stock-company-national-atomic-company-kazatomprom--kap/kap-1h2025-results-and-2026-production-strategy-/9068901"),
+    ("Kazatomprom, Kazatomprom informs on Changes to Mineral Extraction Tax Rate",
+     "https://www.kazatomprom.kz/en/media/view/kazatomprom_soobshchaet_ob_izmenenii_stavki_naloga_na_dobichu_poleznih_iskopaemih"),
+    ("Kazatomprom, Integrated Annual Report 2025",
+     "https://www.kazatomprom.kz/storage/ef/kap_iar_2025_final_eng234.pdf"),
+]
+
+KAP = dict(
+    slug="kazatomprom-2025",
+    url="research/kazatomprom-2025.html",
+    tag="Companies",
+    kind="Company note",
+    title="More Uranium, Same Profit: Kazatomprom in 2025",
+    date="17 Oct 2026", date_long="17 October 2026", iso="2026-10-17",
+    line="Output rose 11% in 2025, yet revenue fell 1% as the uranium price slipped.",
+    summary=("Kazatomprom, the world's largest uranium producer, mined 25,839 tonnes of uranium in 2025, 11% more than "
+             "in 2024. Revenue still fell 1%, to ₸1.80 trillion, because its average selling price dropped 6% and it sold "
+             "no enriched uranium after ₸252 billion of such sales in 2024. In the first half of 2026 the price recovered, "
+             "but a new extraction tax and dearer sulphuric acid are pushing costs up."),
+    art=columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, w=300, h=150, hi=2, top=32, fmt="{:.1f}",
+                desc="Kazatomprom production, thousand tonnes of uranium: 21.1 in 2023, 23.3 in 2024, 25.8 in 2025"),
+    art_title="Production, thousand tU",
+    pdf=None, pages=0,
+    data="data/kazatomprom-2023-2026",
+    og_num="+11%", og_cap="more uranium in 2025, with revenue down 1%",
+    og_chart=columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, w=420, h=260, hi=2, top=32, fmt="{:.1f}"),
+)
+KAP["feat"] = (U_YEARS, "Kazatomprom production, thousand tonnes of uranium",
+               columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, w=520, h=270, hi=2, top=32, fmt="{:.1f}",
+                       desc="Production 2023 to 2025"), "Kazatomprom operating and financial reviews")
+
+data_files(KAP["data"], "Kazatomprom key figures, 2023 to first half of 2026",
+           ["Sources: Kazatomprom operating and financial reviews for 2023, 2024, 2025 and the first half of 2026; 2025 and 1H2026 results releases.",
+            "Production is on a 100% basis (all mines the Group consolidates or holds a stake in, counted in full).",
+            "Group sales and the Group average realized price cover U3O8 only, not enriched uranium or fuel pellets.",
+            "Spot price is the average of weekly spot prices reported by Kazatomprom from third-party price providers.",
+            "Adjusted net profit attributable to owners is the company's own measure, without one-off items. It is not shown for 2023 because the 2023 report used a different adjusted measure."],
+           [("Annual", ["Indicator", *U_YEARS],
+             [["Production, tU (100% basis)", *U_PROD], ["Group U3O8 sales, tU", *U_SALES],
+              ["Group average realized price, $/lb", *U_PRICE], ["Average weekly spot price, $/lb", *U_SPOT],
+              ["Revenue, ₸ billion", *U_REV], ["Adjusted EBITDA, ₸ billion", *U_EBITDA],
+              ["Adjusted net profit attributable to owners, ₸ billion", *["" if v is None else v for v in U_ADJ_NP]]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Revenue, ₸ billion", *U_H1["rev"]], ["Net profit, ₸ billion", *U_H1["np"]],
+              ["Group average realized price, $/lb", *U_H1["price"]], ["Average weekly spot price, $/lb", *U_H1["spot"]],
+              ["Group U3O8 sales, tU", *U_H1["sales"]]])])
+
+KAP["notes"] = '''<ul class="notes">
+<li>All figures come from Kazatomprom's own reports, listed under Sources. Production is on a 100% basis, which counts every mine the company consolidates or holds a stake in at full volume.</li>
+<li>Sales volumes and the average realized price cover natural uranium (U3O8) only. Enriched uranium sold to Ulba-FA in 2024 is in revenue but not in these volumes.</li>
+<li>Reported net profit is distorted by one-off gains in 2024 and 2025 linked to taking control of the Budenovskoye joint venture, so this note uses the company's adjusted net profit attributable to owners.</li>
+<li>Percentage changes are calculated by the author from the reported figures.</li>
+</ul>'''
+
+kap_sections = f'''<h2>Key findings</h2><ol>
+<li>Production rose 11% in 2025, to 25,839 tonnes of uranium (tU), and is 22% higher than in 2023.</li>
+<li>The average price Kazatomprom received fell 6%, to $65.32 per pound. The spot price fell further, by 16%.</li>
+<li>Revenue slipped 1%, to ₸1,803 billion. Natural uranium sales grew 16%, but enriched uranium sales of ₸252 billion in 2024 did not repeat.</li>
+<li>Adjusted net profit was almost unchanged at ₸570 billion. In the first half of 2026 revenue rose 9%, while net profit fell 9%.</li></ol>
+{fig(1, "Production, thousand tonnes of uranium (100% basis)",
+     columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, hi=2, top=32, fmt="{:.1f}",
+             desc="Production rose from 21.1 thousand tonnes in 2023 to 23.3 in 2024 and 25.8 in 2025"),
+     src_link(0, SRC_KAP) + "; " + src_link(2, SRC_KAP), KAP["data"])}
+<h2>Where the extra uranium went</h2>
+<p>Kazatomprom sold 18,494 tU of natural uranium in 2025, 11% more than a year earlier. That part of the business earned ₸1,638 billion, up 16%, and made up 91% of revenue against 78% in 2024.</p>
+<p>The rest of the 2024 revenue was enriched uranium sold to Ulba-FA, a fuel plant in Ust-Kamenogorsk: ₸252 billion, or 14% of the total. In 2025 this line was zero. Without it, 2024 revenue would have been about ₸1,561 billion, and 2025 would show growth of about 15%.</p>
+<p>Asia took 56% of the uranium the Group sold in 2025, up from 50% in 2024. The Americas took 25% and Europe 19% (Integrated Annual Report 2025). The company does not publish sales by country in its results.</p>
+<h2>Why the price matters more than volume</h2>
+<p>Most of Kazatomprom's uranium is sold under long-term contracts, and many of them follow the spot price with a delay. So when spot prices jumped in 2024, the company's price rose less, and when spot fell in 2025, its price fell less (Figure 2). In the first half of 2026 the gap opened again: spot averaged $85.98, while Kazatomprom received $67.88.</p>
+{fig(2, "Kazatomprom's average realized price and the spot price, $ per pound of U3O8",
+     columns([("Kazatomprom realized price", GREY, U_PRICE + [U_H1["price"][1]]), ("Spot price", ACCENT, U_SPOT + [U_H1["spot"][1]])],
+             U_YEARS + ["1H 2026"], w=560, h=260, top=100, fmt="{:.0f}",
+             desc="Realized price 55, 69, 65 and 68 dollars per pound; spot 61, 86, 73 and 86"),
+     src_link(0, SRC_KAP) + "; " + src_link(5, SRC_KAP), KAP["data"])}
+<div class="table-title">Table 1. Kazatomprom key figures</div>
+{table(["", *U_YEARS],
+       [["Production, tU", *map(n0, U_PROD)], ["Group sales, tU", *map(n0, U_SALES)],
+        ["Realized price, $/lb", *[f"{v:.2f}" for v in U_PRICE]], ["Spot price, $/lb", *[f"{v:.2f}" for v in U_SPOT]],
+        ["**Revenue, ₸ billion", *map(n0, U_REV)], ["Adjusted EBITDA, ₸ billion", *map(n0, U_EBITDA)],
+        ["**Adjusted net profit, ₸ billion", "n/a", *map(n0, U_ADJ_NP[1:])]])}
+<p class="table-note">Adjusted net profit is attributable to owners and excludes one-off items. Sources: {src_link(0, SRC_KAP)}; {src_link(2, SRC_KAP)}; {src_link(3, SRC_KAP)}.</p>
+<h2>2026: better prices, higher costs</h2>
+<p>In the first six months of 2026 revenue rose 9%, to ₸718 billion, because the average realized price climbed 16%. Net profit still fell 9%, to ₸240 billion. The company puts this down to foreign exchange losses and higher finance costs.</p>
+<p>Costs are going up for three reasons the company names. From 2026 the mineral extraction tax depends on how much each deposit produces, from 4% for up to 500 tonnes a year to 18% above 4,000 tonnes, with an extra charge when uranium prices are high. Sulphuric acid, which is used to dissolve uranium underground, has become more expensive. And a stronger tenge makes local costs bigger in dollars. In August 2026 Kazatomprom raised its 2026 guidance for C1 cash cost from $23.50-25.00 to $25.50-27.00 per pound.</p>
+<p>Kazatomprom is also choosing to grow more slowly. In August 2025 it cut the 2026 production level in its subsoil use agreements by about 10%, from 32,777 to 29,697 tU. Its 2026 guidance is 27,500 to 29,000 tU.</p>
+<h2>Risks</h2><ol>
+<li>Profit depends on the uranium price, which fell 16% in 2025 and rose again in 2026.</li>
+<li>The new tax raises costs on the largest deposits most, and the top rate applies when prices are high.</li>
+<li>The company says its 2026 production guidance depends on sulphuric acid being available.</li></ol>
+{view("view_kazatomprom.txt")}'''
+
+# China and Central Asia, 2025: Chinese customs data and each country's own figures, $ billion
+CA_ROWS = [  # country, total (Chinese data), growth %, China's exports, China's imports, country's own total or None
+    ("Kazakhstan", 48.7, 11, 29.7, 19.0, 34.1),
+    ("Kyrgyzstan", 27.2, 20, 22.0, 5.2, 4.97),
+    ("Uzbekistan", 16.1, 18, 14.2, 1.9, 17.2),
+    ("Turkmenistan", 10.0, -5.6, 1.6, 8.4, None),
+    ("Tajikistan", 4.3, 12, 3.7, 0.56, 2.82),
+]
+CA_TOTAL, CA_EXP, CA_IMP = 106.3, 71.2, 35.1
+
+SRC_CA = [
+    ("The State Council of the PRC (Xinhua), China-Central Asia economic, trade cooperation achieves remarkable progress in 2025 (18 January 2026)",
+     "https://english.www.gov.cn/archive/statistics/202601/18/content_WS696c9e63c6d00ca5f9a08a1d.html", "Xinhua"),
+    ("Eurasianet, China's trade surplus with Central Asia grows in 2025 (GACC data)",
+     "https://eurasianet.org/chinas-trade-surplus-with-central-asia-grows-in-2025", "Eurasianet (GACC data)"),
+    ("Eurasianet, China reinforces its trade dominance in Central Asia, but numbers don't always align (January 2026)",
+     "https://eurasianet.org/china-reinforces-its-trade-dominance-in-central-asia-but-numbers-dont-always-align", "Eurasianet, January 2026"),
+    ("RFE/RL, China-Kyrgyzstan trade gap widens as conflicting data raises transparency concerns (March 2026)",
+     "https://www.rferl.org/a/china-kyrgyzstan-trade-export-statistics-transparency-corruption-central-asia/33716141.html"),
+    ("UzDaily, Uzbekistan's foreign trade turnover reaches US$81.2 billion in 2025",
+     "https://www.uzdaily.uz/en/uzbekistans-foreign-trade-turnover-reaches-us812-billion-in-2025-up-207/"),
+    ("Association of Financiers of Kazakhstan, Kazakhstan-China commodity turnover, March 2026 (BNS data)",
+     "https://afk.kz/2026/03/Kazakhstan-China-Commodity-Turnover-March2026.pdf", "Association of Financiers of Kazakhstan (BNS data)"),
+]
+
+CA = dict(
+    slug="china-central-asia-2025",
+    url="research/china-central-asia-2025.html",
+    tag="Trade",
+    kind="Trade brief",
+    title="Counted Twice: China's Trade with Central Asia in 2025",
+    date="17 Oct 2026", date_long="17 October 2026", iso="2026-10-17",
+    line="China counts $27.2 billion of trade with Kyrgyzstan. Kyrgyzstan counts $5 billion.",
+    summary=("China's trade with the five Central Asian states reached $106.3 billion in 2025, up 12%, according to "
+             "Chinese customs. China sold the region twice as much as it bought, and only Turkmenistan, with its gas, "
+             "sold China more than it bought. The countries' own statistics often show much less trade: Kyrgyzstan "
+             "records less than a fifth of the figure China reports."),
+    art=hbars([(c, t) for c, t, *_ in CA_ROWS], fmt="{:.1f}"),
+    art_title="Trade with China, 2025, $ bn (Chinese data)",
+    pdf=None, pages=0,
+    data="data/china-central-asia-trade-2025",
+    og_num="$106.3 bn", og_cap="China's trade with Central Asia in 2025",
+    og_chart=columns([("China's data", GREY, [r[1] for r in CA_ROWS])], ["KZ", "KG", "UZ", "TM", "TJ"], w=420, h=260, top=56, fmt="{:.1f}"),
+)
+CA["feat"] = (None, "Trade with China in 2025, $ billion: China's figure and the country's own",
+              columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", ACCENT, [r[5] for r in CA_ROWS if r[5]])],
+                      [r[0] for r in CA_ROWS if r[5]], w=520, h=270, top=56, fmt="{:.1f}",
+                      desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
+              "Chinese customs via Xinhua and Eurasianet; national statistics")
+
+data_files(CA["data"], "China's goods trade with Central Asia, 2025 ($ billion)",
+           ["Chinese data: General Administration of Customs of China (GACC), as reported by Xinhua and Eurasianet.",
+            "Country's own data: Kazakhstan, Bureau of National Statistics (via the Association of Financiers of Kazakhstan); "
+            "Kyrgyzstan, official figure reported by RFE/RL; Uzbekistan, Statistics Agency (via UzDaily, 21.2% of $81.2 billion); "
+            "Tajikistan, customs service (imports $2.3 billion plus exports $0.52 billion, via Eurasianet). Turkmenistan does not publish this figure.",
+            "China's exports to the region are $71.2 billion in the Xinhua report and $71.3 billion in Eurasianet's.",
+            "Growth is the year-on-year change reported with the Chinese data."],
+           [("2025", ["Country", "Total trade, Chinese data", "Growth, %", "China's exports", "China's imports", "Total trade, country's own data"],
+             [[c, t, g, e, i, "" if o is None else o] for c, t, g, e, i, o in CA_ROWS] +
+             [["Central Asia", CA_TOTAL, 12, CA_EXP, CA_IMP, ""]])])
+
+CA["notes"] = '''<ul class="notes">
+<li>The main series is China's customs data (General Administration of Customs of China), as published by Xinhua and reported country by country by Eurasianet.</li>
+<li>"Country's own data" is each Central Asian country's official figure for its trade with China, taken from the sources listed. Turkmenistan does not publish one.</li>
+<li>For Tajikistan, the country's own total is the sum of imports from China ($2.3 billion) and exports to China ($0.52 billion) reported by its customs service.</li>
+<li>China's exports to the region are $71.2 billion in Xinhua's report and $71.3 billion in Eurasianet's. This brief uses $71.2 billion. Shares and gaps are calculated by the author.</li>
+</ul>'''
+
+ca_rows_html = [[c, f"{t:.1f}", f"{g:+.1f}%".replace(".0%", "%").replace("-", "−"), f"{e:.1f}", f"{i:.1f}",
+                 "n/a" if o is None else f"{o:.1f}"] for c, t, g, e, i, o in CA_ROWS]
+ca_sections = f'''<h2>Key findings</h2><ol>
+<li>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time.</li>
+<li>China exported $71.2 billion to the region and imported $35.1 billion, a surplus of $36.1 billion.</li>
+<li>Kazakhstan accounts for 46% of the total. Kyrgyzstan is second with 26% and grew fastest, by 20%.</li>
+<li>Kyrgyzstan's own statistics show $4.97 billion of trade with China, against $27.2 billion in Chinese data.</li></ol>
+<figure class="figure"><div class="fig-title">Figure 1. China's trade with each Central Asian country, 2025, $ billion (Chinese data)</div>
+{hbars([(c, t) for c, t, *_ in CA_ROWS], fmt="{:.1f}")}
+<figcaption>Source: {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}. <a href="../{CA["data"]}.csv" download>Download the data (CSV)</a></figcaption></figure>
+<h2>Four countries buy more than they sell</h2>
+<p>China sells Central Asia about twice as much as it buys. Kazakhstan, Kyrgyzstan, Uzbekistan and Tajikistan all import more from China than they export to it. For Uzbekistan the ratio is more than seven to one: $14.2 billion of goods from China against $1.9 billion going the other way.</p>
+<p>Turkmenistan is the exception. It sold China $8.4 billion of goods in 2025, almost all of it natural gas, and bought $1.6 billion. It was also the only country whose trade with China fell, by 5.6%.</p>
+<div class="table-title">Table 1. China's trade with Central Asia, 2025, $ billion</div>
+{table(["", "Total, China's data", "Growth", "China's exports", "China's imports", "Total, country's own data"],
+       ca_rows_html + [["**Central Asia", f"{CA_TOTAL:.1f}", "+12%", f"{CA_EXP:.1f}", f"{CA_IMP:.1f}", ""]])}
+<p class="table-note">Sources: {src_link(0, SRC_CA)}; {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}; {src_link(3, SRC_CA)}; {src_link(4, SRC_CA)}; {src_link(5, SRC_CA)}.</p>
+<h2>The same trade, counted twice</h2>
+<p>The countries' own statistics tell a different story (Figure 2). Kazakhstan records $34.1 billion of trade with China, $14.6 billion less than China does. The previous <a href="kazakhstan-china-trade.html">trade brief</a> looked at that gap in detail.</p>
+<p>Kyrgyzstan's gap is bigger in absolute terms and far bigger in proportion. Its official figure of $4.97 billion is less than a fifth of China's $27.2 billion, and the difference grew from $17.1 billion in 2024 to about $22 billion in 2025 (RFE/RL). Kyrgyz customs officials told RFE/RL that China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use. Under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap.</p>
+<p>In Tajikistan the two sides agree on exports to China but not on imports: China reports $3.7 billion of goods sent, Tajik customs $2.3 billion received. Eurasianet links the difference to Chinese goods entering without being recorded. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's.</p>
+{fig(2, "Trade with China in 2025: China's figure and the country's own, $ billion",
+     columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", ACCENT, [r[5] for r in CA_ROWS if r[5]])],
+             [r[0] for r in CA_ROWS if r[5]], w=560, h=260, top=56, fmt="{:.1f}",
+             desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
+     src_link(1, SRC_CA) + "; " + src_link(3, SRC_CA) + "; " + src_link(4, SRC_CA) + "; " + src_link(5, SRC_CA), CA["data"])}
+<p>For anyone using these numbers, the practical point is to say whose data they are. A headline of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up somewhere else.</p>
+{view("view_central_asia.txt")}'''
+
+report(KAP, kap_sections,
+       [("Production, 2025", "25,839 tU"), ("Production growth", "+11%"), ("Realized price, 2025", "$65.32/lb"),
+        ("Revenue, 2025", "₸1.80 trn"), ("Asia's share of sales", "56%")], SRC_KAP, disclaimer=True)
+report(CA, ca_sections,
+       [("Trade, 2025", "$106.3 bn"), ("Growth", "+12%"), ("China's surplus", "$36.1 bn"),
+        ("Kazakhstan's share", "46%"), ("Kyrgyzstan, own data", "$4.97 bn")], SRC_CA)
+
+TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
+                 columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22,
+                         desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
+REPORTS = [CA, KAP, TRADE, KASPI]  # newest first; the first one is featured on the home page
+
+
 # ---------- Home ----------
 
 
@@ -466,6 +709,12 @@ COVERAGE = [
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
          what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
+    dict(code="KAP", tag="Company · Kazakhstan", name="Kazatomprom", band="#3f7d3a",
+         what="World's largest uranium producer, listed in London and Astana", r=KAP,
+         stats=[("Production, 2025", "25,839 tU"), ("Realized price", "$65.32/lb"), ("Revenue, 2025", "₸1.80 trn")]),
+    dict(code="CA", tag="Region", name="Central Asia", band="#8a5a2b",
+         what="Five states whose trade with China passed $100 billion in 2025", r=CA,
+         stats=[("Trade with China, 2025", "$106.3 bn"), ("China's surplus", "$36.1 bn"), ("Kyrgyzstan, own data", "$4.97 bn")]),
     dict(code="CN", tag="Country", name="China", band="#b8261c",
          what="Kazakhstan's main trading partner in these reports", r=TRADE,
          stats=[("Goods to Kazakhstan, 2025", "$18.9 bn"), ("Same flow, Chinese data", "$29.7 bn"), ("Top buy from Kazakhstan", "Ores")]),
@@ -482,7 +731,7 @@ def card(c):
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz after its acquisition of Hepsiburada and Kazakhstan's trade with China. Every source is cited, and the underlying data is available to download.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz and Kazatomprom, Kazakhstan's trade with China, and China's trade with the five Central Asian states. Every source is cited, and the underlying data is available to download.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -493,11 +742,11 @@ home = f'''<section class="masthead"><div class="wrap">
 <h2><a href="{F["url"]}">{F["title"]}</a></h2>
 <p class="dek">{F["line"]}</p>
 <p>{F["summary"]}</p>
-<div class="row-actions"><a href="{F["url"]}">Read the brief</a><a class="pdf-link" href="{F["pdf"]}" download>PDF <span>{F["pages"]} pp.</span></a><a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
+<div class="row-actions"><a href="{F["url"]}">Read the {F["kind"].split()[-1].lower()}</a>{pdf_link(F)}<a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
 </div>
-<figure class="figure featured-chart"><div class="fig-title">Kazakhstan's exports to and imports from China, $ billion</div>
-{columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22, desc="Exports and imports, 2020 to 2025")}
-<figcaption>Source: Kazakh official statistics. From <a href="{F["url"]}">{F["title"].split(":")[0]}</a>.</figcaption></figure>
+<figure class="figure featured-chart"><div class="fig-title">{F["feat"][1]}</div>
+{F["feat"][2]}
+<figcaption>Source: {F["feat"][3]}. From <a href="{F["url"]}">{F["title"].split(":")[0]}</a>.</figcaption></figure>
 </div>
 </div></section>
 
@@ -515,6 +764,8 @@ home = f'''<section class="masthead"><div class="wrap">
 <div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
 <p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
+    dict(name="China-Central Asia goods trade", cover="2025 · five countries · Chinese and national data", base=CA["data"]),
+    dict(name="Kazatomprom key figures", cover="2023-1H2026 · production, prices, revenue, profit", base=KAP["data"]),
     dict(name="Kazakhstan-China goods trade", cover="2020-2025 · Kazakh and Chinese data · top products", base=TRADE["data"]),
     dict(name="Kaspi.kz key financials", cover="2023-2025 · revenue by segment, net income, margins", base=KASPI["data"])])}</div>
 </div></section>'''
@@ -528,7 +779,7 @@ counts = {t: sum(r["tag"] == t for r in REPORTS) for t in ("Companies", "Trade")
 research = f'''<section class="page-head"><div class="wrap">
 <h1>Research</h1>
 <p><b>Company notes</b> look at how a company makes money and what has changed, based on its annual report.
-<b>Trade briefs</b> look at what Kazakhstan sells and buys, based on official statistics.</p>
+<b>Trade briefs</b> look at what Kazakhstan and its neighbours sell and buy, based on official statistics.</p>
 <div class="filters">
 <button class="on" data-f="all">All <span>{len(REPORTS)}</span></button>
 <button data-f="companies">Company notes <span>{counts["Companies"]}</span></button>
@@ -542,6 +793,12 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
+    dict(name="China-Central Asia goods trade", cover="2025", unit="$ billion",
+         what="China's trade with Kazakhstan, Kyrgyzstan, Uzbekistan, Turkmenistan and Tajikistan: totals, growth, exports, imports, and each country's own figure.",
+         src="GACC via Xinhua and Eurasianet; national statistics", base=CA["data"], r=CA),
+    dict(name="Kazatomprom key figures", cover="2023-1H2026", unit="tU, $/lb, ₸ billion",
+         what="Production, sales volume, realized and spot uranium prices, revenue, adjusted EBITDA and adjusted net profit; first half of 2025 and 2026.",
+         src="Kazatomprom operating and financial reviews", base=KAP["data"], r=KAP),
     dict(name="Kazakhstan-China goods trade", cover="2020-2025", unit="$ billion",
          what="Exports, imports, turnover and balance (Kazakh data); the same trade in Chinese customs data; top five product groups in 2024.",
          src="Bureau of National Statistics of Kazakhstan; GACC; UN Comtrade", base=TRADE["data"], r=TRADE),
@@ -633,7 +890,7 @@ redirect("contact.html", "about.html#contact")
 
 urls = ["", "research.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-11</lastmod></url>\n" for u in urls) + "</urlset>\n")
+      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-17</lastmod></url>\n" for u in urls) + "</urlset>\n")
 
 write("assets/favicon.svg", FAVICON)
 for name in ("style.css", "site.js"):
