@@ -184,7 +184,7 @@ def n0(v):
 # Sources: every name links to the page the number came from.
 SRC_KASPI = [
     ("Kaspi.kz JSC, Annual Report on Form 20-F for the fiscal year ended 31 December 2025 (U.S. SEC filing)",
-     "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=kaspi&type=20-F"),
+     "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001985487&type=20-F"),
     ("Kaspi.kz investor relations", "https://ir.kaspi.kz"),
 ]
 SRC_TRADE = [
