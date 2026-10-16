@@ -129,13 +129,13 @@ def columns(series, labels, w=480, h=250, fmt="{:.1f}", unit="", top=None, hi=No
     return "".join(out)
 
 
-def hbars(rows, unit="", colour=GREY):
+def hbars(rows, unit="", colour=GREY, fmt="{:.2f}"):
     """Horizontal bars in HTML, so long labels stay readable on phones."""
     top = max(v for _, v in rows)
     items = "".join(
         f'<div class="hbar"><div class="hbar-label">{lab}</div>'
         f'<div class="hbar-track"><span style="width:{v/top*100:.1f}%;background:{colour}"></span></div>'
-        f'<div class="hbar-val">{v:.2f}{unit}</div></div>' for lab, v in rows)
+        f'<div class="hbar-val">{fmt.format(v)}{unit}</div></div>' for lab, v in rows)
     return f'<div class="hbars">{items}</div>'
 
 
@@ -208,8 +208,9 @@ SRC_TRADE = [
 
 
 def src_link(i, srcs, pre="../"):
-    name, url = srcs[i]
-    return f'<a href="{url}" rel="noopener">{name.split(",")[0]}</a>'
+    name, url = srcs[i][:2]
+    short = srcs[i][2] if len(srcs[i]) > 2 else name.split(",")[0]
+    return f'<a href="{url}" rel="noopener">{short}</a>'
 
 
 KASPI = dict(
@@ -253,11 +254,17 @@ TRADE = dict(
 REPORTS = [TRADE, KASPI]  # newest first; the first one is featured on the home page
 
 
+def pdf_link(r, pre=""):
+    if not r.get("pdf"):
+        return ""
+    return f'<a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a>'
+
+
 def row(r, pre=""):
     return f'''<div class="row" data-type="{r["tag"].lower()}">
 <div class="row-date"><time datetime="{r["iso"]}">{r["date"]}</time></div>
 <div class="row-main"><div class="label">{r["kind"]}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
-<div class="row-actions"><a href="{pre}{r["url"]}">Read</a><a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a><a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
+<div class="row-actions"><a href="{pre}{r["url"]}">Read</a>{pdf_link(r, pre)}<a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
 
 
@@ -330,10 +337,11 @@ data_files(TRADE["data"], "Kazakhstan's goods trade with China, 2020-2025 ($ bil
 def report(r, sections, facts, sources, disclaimer=False):
     pre = "../"
     kv = "".join(f'<div class="fact"><div class="fact-num">{v}</div><div class="fact-label">{k}</div></div>' for k, v in facts)
-    srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in sources)
+    srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u, *_ in sources)
     cite = (f'{AUTHOR} (2026). <i>{r["title"]}</i>. Steppe &amp; Silk Research, {r["date_long"]}. '
             f'{SITE}/{r["url"]}')
-    dl = (f'<div class="downloads"><a href="{pre}{r["pdf"]}" download>Full report <span>PDF, {r["pages"]} pp.</span></a>'
+    full = (f'<a href="{pre}{r["pdf"]}" download>Full report <span>PDF, {r["pages"]} pp.</span></a>' if r.get("pdf") else "")
+    dl = (f'<div class="downloads">{full}'
           f'<a href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a>'
           f'<a href="{pre}{r["data"]}.csv" download>Data <span>CSV</span></a></div>')
     warn = ('<p class="disclaimer">This note is independent research for information and learning. '
@@ -452,6 +460,227 @@ report(TRADE, trade_sections,
         ("Balance, 2025", "−$3.7 bn"), ("China's share of KZ trade", "23.7%")], SRC_TRADE)
 
 
+# ---------- New reports, October 2026 ----------
+
+def view(name):
+    """The author's own "My view" text. The section is left out until the file has text in it."""
+    path = os.path.join(HERE, name)
+    text = open(path).read().strip() if os.path.exists(path) else ""
+    return f'<h2>My view</h2><blockquote class="view">{text}</blockquote>' if text else ""
+
+
+# Halyk Bank: consolidated results for 2023-2025 and the first half of 2026
+H_YEARS = ["2023", "2024", "2025"]
+H_NI = [693.4, 921.0, 1058.4]      # net income attributable to common shareholders, ₸ billion
+H_ROAE = [32.1, 34.0, 32.6]        # return on average equity, %
+H_NIM = [6.1, 7.2, 7.1]            # net interest margin, % (2023 as restated in the 2024 release)
+H_CI = [19.2, 17.6, 17.5]          # cost-to-income ratio, %
+H_H1 = dict(ni=(528.6, 447.6), nim=(7.3, 6.8), ci=(17.2, 19.2))
+
+SRC_HALYK = [
+    ("Halyk Bank, Consolidated financial results for the FY 2025 (London Stock Exchange RNS, March 2026)",
+     "https://www.investegate.co.uk/announcement/rns/jsc-halyk-bank--37qb/consolidated-financial-results-for-the-fy-2025/9481568",
+     "Halyk Bank, FY 2025 results"),
+    ("Halyk Bank, Consolidated financial results for the FY 2024 (London Stock Exchange RNS)",
+     "https://www.investegate.co.uk/announcement/rns/jsc-halyk-bank--37qb/consolidated-financial-results-for-the-fy-2024/8800201",
+     "FY 2024 results"),
+    ("Halyk Bank, Consolidated financial results for the FY 2023 (London Stock Exchange RNS)",
+     "https://www.investegate.co.uk/announcement/rns/jsc-halyk-bank--37qb/consolidated-financial-results-for-the-fy-2023-/8090484",
+     "FY 2023 results"),
+    ("Halyk Bank, Interim consolidated results for 1H 2026, press release (18 August 2026)",
+     "https://halykbank.com/storage/830/Press-Release.pdf", "1H 2026 results"),
+    ("Halyk Bank, Consolidated financial results for the 1Q 2026 (London Stock Exchange RNS, May 2026)",
+     "https://www.investegate.co.uk/announcement/rns/jsc-halyk-bank--37qb/consolidated-financial-results-for-the-1q-2026/9572733",
+     "1Q 2026 results"),
+]
+
+HALYK = dict(
+    slug="halyk-bank-2026",
+    url="research/halyk-bank-2026.html",
+    tag="Companies",
+    kind="Company note",
+    title="A Record Year, Then a Squeeze: Halyk Bank in 2025-2026",
+    date="17 Oct 2026", date_long="17 October 2026", iso="2026-10-17",
+    line="Net income passed ₸1 trillion in 2025, then fell 15% in the first half of 2026.",
+    summary=("Halyk Bank, Kazakhstan's largest bank by assets, earned ₸1,058 billion in 2025, 15% more than in 2024, "
+             "with a return on equity of 32.6%. In the first half of 2026 net income fell 15.3%. Stricter reserve "
+             "requirements from the National Bank, tighter rules on consumer loans and dearer deposits cut the "
+             "net interest margin from 7.3% to 6.8%."),
+    art=columns([("Net income", GREY, H_NI)], H_YEARS, w=300, h=150, hi=2, top=1250, fmt="{:,.0f}",
+                desc="Halyk Bank net income, ₸ billion: 693 in 2023, 921 in 2024, 1,058 in 2025"),
+    art_title="Net income, ₸ bn",
+    pdf="reports/halyk-bank-2026.pdf", pages=2,
+    data="data/halyk-bank-2023-2026",
+    og_num="−15%", og_cap="net income in 1H 2026, after a record 2025",
+    og_chart=columns([("Net income", GREY, H_NI)], H_YEARS, w=420, h=260, hi=2, top=1250, fmt="{:,.0f}"),
+)
+HALYK["feat"] = (H_YEARS, "Halyk Bank net income, ₸ billion",
+                 columns([("Net income", GREY, H_NI)], H_YEARS, w=520, h=270, hi=2, top=1250, fmt="{:,.0f}",
+                         desc="Net income 2023 to 2025"), "Halyk Bank results releases")
+
+data_files(HALYK["data"], "Halyk Bank key figures, 2023 to first half of 2026",
+           ["Sources: Halyk Bank consolidated results releases for FY 2023, FY 2024, FY 2025, 1Q 2026 and 1H 2026 (IFRS).",
+            "Net income is attributable to common shareholders, in ₸ billion (rounded from ₸ million).",
+            "Net interest margin for 2023 is the figure restated in the FY 2024 release (6.1%); the FY 2023 release gave 6.2%.",
+            "Half-year ratios are those reported by the bank for the six months, not annualised by the author."],
+           [("Annual", ["Indicator", *H_YEARS],
+             [["Net income, ₸ billion", *H_NI], ["Return on average equity, %", *H_ROAE],
+              ["Net interest margin, %", *H_NIM], ["Cost-to-income ratio, %", *H_CI]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Net income, ₸ billion", *H_H1["ni"]], ["Net interest margin, %", *H_H1["nim"]],
+              ["Cost-to-income ratio, %", *H_H1["ci"]]])])
+
+HALYK["notes"] = '''<ul class="notes">
+<li>All figures come from Halyk Bank's consolidated IFRS results, listed under Sources. Net income is attributable to common shareholders.</li>
+<li>Net interest margin is the bank's own measure: net interest income divided by average interest-earning assets. The 2023 figure is the restated 6.1% from the FY 2024 release.</li>
+<li>Half-year figures are compared with the same half of 2025, as the bank reports them. Percentage changes are calculated by the author.</li>
+</ul>'''
+
+halyk_sections = f'''<h2>Key findings</h2><ol>
+<li>Net income rose from ₸693 billion in 2023 to ₸1,058 billion in 2025, up 53% in two years.</li>
+<li>Return on average equity stayed above 32% in all three years, peaking at 34.0% in 2024.</li>
+<li>In 2025 interest expense grew faster than interest income, 32% against 24%, and the margin slipped from 7.2% to 7.1%.</li>
+<li>In the first half of 2026 net income fell 15.3%, to ₸448 billion, and the margin dropped to 6.8%.</li></ol>
+{fig(1, "Net income attributable to common shareholders, ₸ billion",
+     columns([("Net income", GREY, H_NI)], H_YEARS, hi=2, top=1250, fmt="{:,.0f}",
+             desc="Net income rose from 693 billion tenge in 2023 to 921 in 2024 and 1,058 in 2025"),
+     src_link(0, SRC_HALYK) + "; " + src_link(1, SRC_HALYK) + "; " + src_link(2, SRC_HALYK), HALYK["data"])}
+<h2>How Halyk got to ₸1 trillion</h2>
+<p>Halyk earns most of its money the way a classic bank does: it lends at a higher rate than it pays on deposits. In 2025 its interest income grew 24%, to ₸2,695 billion, and its net loans reached ₸13.1 trillion, while customers kept ₸14.3 trillion with the bank.</p>
+<p>It is also cheap to run. Operating costs took 17.5% of income in 2025, down from 19.2% in 2023. Together with a margin above 7%, that gave a return on equity of 32.6%.</p>
+<p>The warning sign came in the same year. Interest expense grew by 32%, to ₸1,407 billion, faster than interest income, because the bank had to pay more for deposits.</p>
+<div class="table-title">Table 1. Halyk Bank key figures</div>
+{table(["", *H_YEARS, "1H 2025", "1H 2026"],
+       [["**Net income, ₸ billion", *[f"{v:,.0f}" for v in H_NI], *[f"{v:,.0f}" for v in H_H1["ni"]]],
+        ["Return on average equity", *[f"{v}%" for v in H_ROAE], "", ""],
+        ["Net interest margin", *[f"{v}%" for v in H_NIM], *[f"{v}%" for v in H_H1["nim"]]],
+        ["Cost-to-income ratio", *[f"{v}%" for v in H_CI], *[f"{v}%" for v in H_H1["ci"]]]])}
+<p class="table-note">2023 margin as restated in the FY 2024 release. Sources: {src_link(0, SRC_HALYK)}; {src_link(1, SRC_HALYK)}; {src_link(2, SRC_HALYK)}; {src_link(3, SRC_HALYK)}.</p>
+<h2>What changed in 2026</h2>
+<p>Net income for the first six months of 2026 was ₸447.6 billion, against ₸528.6 billion a year earlier. The bank names three causes.</p>
+<p>First, the National Bank of Kazakhstan raised minimum reserve requirements, so banks must keep more money at the central bank, where it earns little. Another increase started in April 2026. Halyk says that without this effect its margin would have been 7.2% instead of 6.8%.</p>
+<p>Second, the regulator tightened the rules on retail lending. Third, the average rate Halyk pays on customer accounts rose while the average rate on its loans stayed flat. Net interest income grew only 2.6%, to ₸657.6 billion, while interest expense rose 21.6%.</p>
+{fig(2, "Net interest margin, %",
+     columns([("Net interest margin", GREY, H_NIM + [H_H1["nim"][1]])], H_YEARS + ["1H 2026"], hi=3, top=8.5, fmt="{:.1f}", unit="%",
+             desc="Net interest margin 6.1% in 2023, 7.2% in 2024, 7.1% in 2025 and 6.8% in the first half of 2026"),
+     src_link(1, SRC_HALYK) + "; " + src_link(0, SRC_HALYK) + "; " + src_link(3, SRC_HALYK), HALYK["data"])}
+<p>Costs also took a bigger share: the cost-to-income ratio rose from 17.2% to 19.2%. Lending kept growing, with gross loans up 13.2% over the year to June 2026, and the cost of risk stayed at 1.4%, which the bank calls a normal level. So the fall in profit comes from the price of money, not from bad loans.</p>
+<h2>Risks</h2><ol>
+<li>The National Bank kept its base rate at 18% in March 2026. If rates stay high longer, deposits stay expensive and the margin stays under pressure.</li>
+<li>Further limits on consumer lending would slow the bank's retail loan book.</li>
+<li>A slowdown in Kazakhstan's economy would raise the cost of risk, which is now low.</li></ol>
+{view("view_halyk.txt")}'''
+
+# China and Central Asia, 2025: Chinese customs data and each country's own figures, $ billion
+CA_ROWS = [  # country, total (Chinese data), growth %, China's exports, China's imports, country's own total or None
+    ("Kazakhstan", 48.7, 11, 29.7, 19.0, 34.1),
+    ("Kyrgyzstan", 27.2, 20, 22.0, 5.2, 4.97),
+    ("Uzbekistan", 16.1, 18, 14.2, 1.9, 17.2),
+    ("Turkmenistan", 10.0, -5.6, 1.6, 8.4, None),
+    ("Tajikistan", 4.3, 12, 3.7, 0.56, 2.82),
+]
+CA_TOTAL, CA_EXP, CA_IMP = 106.3, 71.2, 35.1
+
+SRC_CA = [
+    ("The State Council of the PRC (Xinhua), China-Central Asia economic, trade cooperation achieves remarkable progress in 2025 (18 January 2026)",
+     "https://english.www.gov.cn/archive/statistics/202601/18/content_WS696c9e63c6d00ca5f9a08a1d.html", "Xinhua"),
+    ("Eurasianet, China's trade surplus with Central Asia grows in 2025 (GACC data)",
+     "https://eurasianet.org/chinas-trade-surplus-with-central-asia-grows-in-2025", "Eurasianet (GACC data)"),
+    ("Eurasianet, China reinforces its trade dominance in Central Asia, but numbers don't always align (January 2026)",
+     "https://eurasianet.org/china-reinforces-its-trade-dominance-in-central-asia-but-numbers-dont-always-align", "Eurasianet, January 2026"),
+    ("RFE/RL, China-Kyrgyzstan trade gap widens as conflicting data raises transparency concerns (March 2026)",
+     "https://www.rferl.org/a/china-kyrgyzstan-trade-export-statistics-transparency-corruption-central-asia/33716141.html"),
+    ("UzDaily, Uzbekistan's foreign trade turnover reaches US$81.2 billion in 2025",
+     "https://www.uzdaily.uz/en/uzbekistans-foreign-trade-turnover-reaches-us812-billion-in-2025-up-207/"),
+    ("Association of Financiers of Kazakhstan, Kazakhstan-China commodity turnover, March 2026 (BNS data)",
+     "https://afk.kz/2026/03/Kazakhstan-China-Commodity-Turnover-March2026.pdf", "Association of Financiers of Kazakhstan (BNS data)"),
+]
+
+CA = dict(
+    slug="china-central-asia-2025",
+    url="research/china-central-asia-2025.html",
+    tag="Trade",
+    kind="Trade brief",
+    title="Counted Twice: China's Trade with Central Asia in 2025",
+    date="17 Oct 2026", date_long="17 October 2026", iso="2026-10-17",
+    line="China counts $27.2 billion of trade with Kyrgyzstan. Kyrgyzstan counts $5 billion.",
+    summary=("China's trade with the five Central Asian states reached $106.3 billion in 2025, up 12%, according to "
+             "Chinese customs. China sold the region twice as much as it bought, and only Turkmenistan, with its gas, "
+             "sold China more than it bought. The countries' own statistics often show much less trade: Kyrgyzstan "
+             "records less than a fifth of the figure China reports."),
+    art=hbars([(c, t) for c, t, *_ in CA_ROWS], fmt="{:.1f}"),
+    art_title="Trade with China, 2025, $ bn (Chinese data)",
+    pdf="reports/china-central-asia-2025.pdf", pages=2,
+    data="data/china-central-asia-trade-2025",
+    og_num="$106.3 bn", og_cap="China's trade with Central Asia in 2025",
+    og_chart=columns([("China's data", GREY, [r[1] for r in CA_ROWS])], ["KZ", "KG", "UZ", "TM", "TJ"], w=420, h=260, top=56, fmt="{:.1f}"),
+)
+CA["feat"] = (None, "Trade with China in 2025, $ billion: China's figure and the country's own",
+              columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", ACCENT, [r[5] for r in CA_ROWS if r[5]])],
+                      [r[0] for r in CA_ROWS if r[5]], w=520, h=270, top=56, fmt="{:.1f}",
+                      desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
+              "Chinese customs via Xinhua and Eurasianet; national statistics")
+
+data_files(CA["data"], "China's goods trade with Central Asia, 2025 ($ billion)",
+           ["Chinese data: General Administration of Customs of China (GACC), as reported by Xinhua and Eurasianet.",
+            "Country's own data: Kazakhstan, Bureau of National Statistics (via the Association of Financiers of Kazakhstan); "
+            "Kyrgyzstan, official figure reported by RFE/RL; Uzbekistan, Statistics Agency (via UzDaily, 21.2% of $81.2 billion); "
+            "Tajikistan, customs service (imports $2.3 billion plus exports $0.52 billion, via Eurasianet). Turkmenistan does not publish this figure.",
+            "China's exports to the region are $71.2 billion in the Xinhua report and $71.3 billion in Eurasianet's.",
+            "Growth is the year-on-year change reported with the Chinese data."],
+           [("2025", ["Country", "Total trade, Chinese data", "Growth, %", "China's exports", "China's imports", "Total trade, country's own data"],
+             [[c, t, g, e, i, "" if o is None else o] for c, t, g, e, i, o in CA_ROWS] +
+             [["Central Asia", CA_TOTAL, 12, CA_EXP, CA_IMP, ""]])])
+
+CA["notes"] = '''<ul class="notes">
+<li>The main series is China's customs data (General Administration of Customs of China), as published by Xinhua and reported country by country by Eurasianet.</li>
+<li>"Country's own data" is each Central Asian country's official figure for its trade with China, taken from the sources listed. Turkmenistan does not publish one.</li>
+<li>For Tajikistan, the country's own total is the sum of imports from China ($2.3 billion) and exports to China ($0.52 billion) reported by its customs service.</li>
+<li>China's exports to the region are $71.2 billion in Xinhua's report and $71.3 billion in Eurasianet's. This brief uses $71.2 billion. Shares and gaps are calculated by the author.</li>
+</ul>'''
+
+ca_rows_html = [[c, f"{t:.1f}", f"{g:+.1f}%".replace(".0%", "%").replace("-", "−"), f"{e:.1f}", f"{i:.1f}",
+                 "n/a" if o is None else f"{o:.1f}"] for c, t, g, e, i, o in CA_ROWS]
+ca_sections = f'''<h2>Key findings</h2><ol>
+<li>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time.</li>
+<li>China exported $71.2 billion to the region and imported $35.1 billion, a surplus of $36.1 billion.</li>
+<li>Kazakhstan accounts for 46% of the total. Kyrgyzstan is second with 26% and grew fastest, by 20%.</li>
+<li>Kyrgyzstan's own statistics show $4.97 billion of trade with China, against $27.2 billion in Chinese data.</li></ol>
+<figure class="figure"><div class="fig-title">Figure 1. China's trade with each Central Asian country, 2025, $ billion (Chinese data)</div>
+{hbars([(c, t) for c, t, *_ in CA_ROWS], fmt="{:.1f}")}
+<figcaption>Source: {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}. <a href="../{CA["data"]}.csv" download>Download the data (CSV)</a></figcaption></figure>
+<h2>Four countries buy more than they sell</h2>
+<p>China sells Central Asia about twice as much as it buys. Kazakhstan, Kyrgyzstan, Uzbekistan and Tajikistan all import more from China than they export to it. For Uzbekistan the ratio is more than seven to one: $14.2 billion of goods from China against $1.9 billion going the other way.</p>
+<p>Turkmenistan is the exception. It sold China $8.4 billion of goods in 2025, almost all of it natural gas, and bought $1.6 billion. It was also the only country whose trade with China fell, by 5.6%.</p>
+<div class="table-title">Table 1. China's trade with Central Asia, 2025, $ billion</div>
+{table(["", "Total, China's data", "Growth", "China's exports", "China's imports", "Total, country's own data"],
+       ca_rows_html + [["**Central Asia", f"{CA_TOTAL:.1f}", "+12%", f"{CA_EXP:.1f}", f"{CA_IMP:.1f}", ""]])}
+<p class="table-note">Sources: {src_link(0, SRC_CA)}; {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}; {src_link(3, SRC_CA)}; {src_link(4, SRC_CA)}; {src_link(5, SRC_CA)}.</p>
+<h2>The same trade, counted twice</h2>
+<p>The countries' own statistics tell a different story (Figure 2). Kazakhstan records $34.1 billion of trade with China, $14.6 billion less than China does. The previous <a href="kazakhstan-china-trade.html">trade brief</a> looked at that gap in detail.</p>
+<p>Kyrgyzstan's gap is bigger in absolute terms and far bigger in proportion. Its official figure of $4.97 billion is less than a fifth of China's $27.2 billion, and the difference grew from $17.1 billion in 2024 to about $22 billion in 2025 (RFE/RL). Kyrgyz customs officials told RFE/RL that China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use. Under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap.</p>
+<p>In Tajikistan the two sides agree on exports to China but not on imports: China reports $3.7 billion of goods sent, Tajik customs $2.3 billion received. Eurasianet links the difference to Chinese goods entering without being recorded. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's.</p>
+{fig(2, "Trade with China in 2025: China's figure and the country's own, $ billion",
+     columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", ACCENT, [r[5] for r in CA_ROWS if r[5]])],
+             [r[0] for r in CA_ROWS if r[5]], w=560, h=260, top=56, fmt="{:.1f}",
+             desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
+     src_link(1, SRC_CA) + "; " + src_link(3, SRC_CA) + "; " + src_link(4, SRC_CA) + "; " + src_link(5, SRC_CA), CA["data"])}
+<p>For anyone using these numbers, the practical point is to say whose data they are. A headline of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up somewhere else.</p>
+{view("view_central_asia.txt")}'''
+
+report(HALYK, halyk_sections,
+       [("Net income, 2025", "₸1.06 trn"), ("Return on equity, 2025", "32.6%"), ("Net income, 1H 2026", "−15.3%"),
+        ("Interest margin, 1H 2026", "6.8%"), ("Cost of risk, 1H 2026", "1.4%")], SRC_HALYK, disclaimer=True)
+report(CA, ca_sections,
+       [("Trade, 2025", "$106.3 bn"), ("Growth", "+12%"), ("China's surplus", "$36.1 bn"),
+        ("Kazakhstan's share", "46%"), ("Kyrgyzstan, own data", "$4.97 bn")], SRC_CA)
+
+TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
+                 columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22,
+                         desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
+REPORTS = [CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
+
+
 # ---------- Home ----------
 
 
@@ -466,6 +695,12 @@ COVERAGE = [
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
          what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
+    dict(code="HSBK", tag="Company · Kazakhstan", name="Halyk Bank", band="#1f7a4d",
+         what="Kazakhstan's largest bank by assets", r=HALYK,
+         stats=[("Net income, 2025", "₸1.06 trn"), ("Return on equity", "32.6%"), ("Net income, 1H 2026", "−15.3%")]),
+    dict(code="CA", tag="Region", name="Central Asia", band="#8a5a2b",
+         what="Five states whose trade with China passed $100 billion in 2025", r=CA,
+         stats=[("Trade with China, 2025", "$106.3 bn"), ("China's surplus", "$36.1 bn"), ("Kyrgyzstan, own data", "$4.97 bn")]),
     dict(code="CN", tag="Country", name="China", band="#b8261c",
          what="Kazakhstan's main trading partner in these reports", r=TRADE,
          stats=[("Goods to Kazakhstan, 2025", "$18.9 bn"), ("Same flow, Chinese data", "$29.7 bn"), ("Top buy from Kazakhstan", "Ores")]),
@@ -482,7 +717,7 @@ def card(c):
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz after its acquisition of Hepsiburada and Kazakhstan's trade with China. Every source is cited, and the underlying data is available to download.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz and Halyk Bank, Kazakhstan's trade with China, and China's trade with the five Central Asian states. Every source is cited, and the underlying data is available to download.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -493,11 +728,11 @@ home = f'''<section class="masthead"><div class="wrap">
 <h2><a href="{F["url"]}">{F["title"]}</a></h2>
 <p class="dek">{F["line"]}</p>
 <p>{F["summary"]}</p>
-<div class="row-actions"><a href="{F["url"]}">Read the brief</a><a class="pdf-link" href="{F["pdf"]}" download>PDF <span>{F["pages"]} pp.</span></a><a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
+<div class="row-actions"><a href="{F["url"]}">Read the {F["kind"].split()[-1].lower()}</a>{pdf_link(F)}<a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
 </div>
-<figure class="figure featured-chart"><div class="fig-title">Kazakhstan's exports to and imports from China, $ billion</div>
-{columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22, desc="Exports and imports, 2020 to 2025")}
-<figcaption>Source: Kazakh official statistics. From <a href="{F["url"]}">{F["title"].split(":")[0]}</a>.</figcaption></figure>
+<figure class="figure featured-chart"><div class="fig-title">{F["feat"][1]}</div>
+{F["feat"][2]}
+<figcaption>Source: {F["feat"][3]}. From <a href="{F["url"]}">{F["title"].split(":")[0]}</a>.</figcaption></figure>
 </div>
 </div></section>
 
@@ -515,6 +750,8 @@ home = f'''<section class="masthead"><div class="wrap">
 <div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
 <p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
+    dict(name="China-Central Asia goods trade", cover="2025 · five countries · Chinese and national data", base=CA["data"]),
+    dict(name="Halyk Bank key figures", cover="2023-1H2026 · net income, margin, return on equity", base=HALYK["data"]),
     dict(name="Kazakhstan-China goods trade", cover="2020-2025 · Kazakh and Chinese data · top products", base=TRADE["data"]),
     dict(name="Kaspi.kz key financials", cover="2023-2025 · revenue by segment, net income, margins", base=KASPI["data"])])}</div>
 </div></section>'''
@@ -528,7 +765,7 @@ counts = {t: sum(r["tag"] == t for r in REPORTS) for t in ("Companies", "Trade")
 research = f'''<section class="page-head"><div class="wrap">
 <h1>Research</h1>
 <p><b>Company notes</b> look at how a company makes money and what has changed, based on its annual report.
-<b>Trade briefs</b> look at what Kazakhstan sells and buys, based on official statistics.</p>
+<b>Trade briefs</b> look at what Kazakhstan and its neighbours sell and buy, based on official statistics.</p>
 <div class="filters">
 <button class="on" data-f="all">All <span>{len(REPORTS)}</span></button>
 <button data-f="companies">Company notes <span>{counts["Companies"]}</span></button>
@@ -542,6 +779,12 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
+    dict(name="China-Central Asia goods trade", cover="2025", unit="$ billion",
+         what="China's trade with Kazakhstan, Kyrgyzstan, Uzbekistan, Turkmenistan and Tajikistan: totals, growth, exports, imports, and each country's own figure.",
+         src="GACC via Xinhua and Eurasianet; national statistics", base=CA["data"], r=CA),
+    dict(name="Halyk Bank key figures", cover="2023-1H2026", unit="₸ billion, %",
+         what="Net income, return on average equity, net interest margin and cost-to-income ratio; first half of 2025 and 2026.",
+         src="Halyk Bank consolidated results (IFRS)", base=HALYK["data"], r=HALYK),
     dict(name="Kazakhstan-China goods trade", cover="2020-2025", unit="$ billion",
          what="Exports, imports, turnover and balance (Kazakh data); the same trade in Chinese customs data; top five product groups in 2024.",
          src="Bureau of National Statistics of Kazakhstan; GACC; UN Comtrade", base=TRADE["data"], r=TRADE),
@@ -633,7 +876,7 @@ redirect("contact.html", "about.html#contact")
 
 urls = ["", "research.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-11</lastmod></url>\n" for u in urls) + "</urlset>\n")
+      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-17</lastmod></url>\n" for u in urls) + "</urlset>\n")
 
 write("assets/favicon.svg", FAVICON)
 for name in ("style.css", "site.js"):
@@ -667,3 +910,88 @@ for slug, inner in cards.items():
         f.write(f'<!doctype html><html><head><meta charset="utf-8">{FONTS}<style>{OG_CSS}</style></head>'
                 f'<body><div class="c">{inner}</div></body></html>')
 print("ok")
+
+# ---------- Academic PDFs for the October 2026 reports ----------
+# tools/render_pdf.js turns tools/pdf/*.html into reports/*.pdf (A4, Times-style, as the earlier reports).
+
+PDF_CSS = """@page{size:A4;margin:22mm 22mm 20mm}
+body{font-family:'Liberation Serif','Times New Roman',serif;font-size:11pt;line-height:1.38;color:#111}
+.title{text-align:center;margin-bottom:14px}.title h1{font-size:16pt;font-weight:bold;margin:0 0 6px;line-height:1.25}
+.title .au{font-size:11pt}.title .dt{font-size:10pt;color:#333;font-style:italic}
+.abs{margin:10px 18px 14px;font-size:10.2pt}.abs b{font-variant:small-caps}
+h2{font-size:12pt;margin:14px 0 4px}p{margin:0 0 7px;text-align:justify}
+.cap{font-size:9.6pt;margin:10px 0 3px}
+table{width:100%;border-collapse:collapse;font-size:10pt;border-top:1.5px solid #000;border-bottom:1.5px solid #000}
+th{font-weight:bold;text-align:right;padding:3px 6px;border-bottom:1px solid #000}th:first-child,td:first-child{text-align:left}
+td{padding:2px 6px;text-align:right}.tn{font-size:8.8pt;color:#333;margin-top:3px}
+.fig{margin:4px 0 2px;max-width:440px}.fig svg text{font-family:'Liberation Serif',serif}
+ol.ref{font-size:9pt;padding-left:18px;margin:4px 0}ol.ref li{margin-bottom:2px;word-break:break-all}
+.meth{font-size:9pt;font-style:italic;margin-top:10px}.keep{break-inside:avoid}"""
+D1, L1 = "#3b3b3b", "#a9a9a9"
+
+
+def ptable(head, rows, note):
+    th = "".join(f"<th>{h}</th>" for h in head)
+    trs = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
+    return f'<table><tr>{th}</tr>{trs}</table><div class="tn">{note}</div>'
+
+
+def pfig(n, title, chart, note):
+    return f'<div class="keep"><div class="cap"><b>Figure {n}.</b> {title}</div><div class="fig">{chart}</div><div class="tn">{note}</div></div>'
+
+
+def pdf_doc(r, abstract, body, view_file, refs):
+    view_text = open(os.path.join(HERE, view_file)).read().strip()
+    refs_html = "".join(f"<li>{escape(n)}. {u}</li>" for n, u, *_ in refs)
+    title = r["title"].replace(": ", ":<br>", 1)
+    return (f'<!doctype html><html><head><meta charset="utf-8"><style>{PDF_CSS}</style></head><body>'
+            f'<div class="title"><h1>{title}</h1><div class="au">{AUTHOR}</div>'
+            f'<div class="dt">Steppe &amp; Silk Research, {r["date_long"]}</div></div>'
+            f'<div class="abs"><b>Summary.</b> {abstract}</div>{body}'
+            f'<h2>Author\'s view</h2><p>{view_text}</p><h2>References</h2><ol class="ref">{refs_html}</ol>'
+            '<div class="meth">Note on method: AI (Claude) was used as a tutor and editor and helped collect the data and draw the figures. '
+            'Figures are taken from the sources listed; calculations are the author\'s.</div></body></html>')
+
+
+halyk_pdf = pdf_doc(HALYK, HALYK["summary"], f'''
+<h2>1. Data</h2><p>All figures come from Halyk Bank's consolidated IFRS results for 2023, 2024 and 2025 and for the first half and first quarter of 2026 [1-5]. Net income is attributable to common shareholders. The 2023 net interest margin is the restated figure from the 2024 release (6.1%).</p>
+<h2>2. Results for 2023-2025</h2>
+<p>Net income rose from ₸693 billion in 2023 to ₸1,058 billion in 2025, an increase of 53% in two years. Return on average equity stayed above 32% in all three years and peaked at 34.0% in 2024. The bank is cheap to run: operating costs took 17.5% of income in 2025, down from 19.2% in 2023.</p>
+{pfig(1, "Net income attributable to common shareholders, ₸ billion",
+      columns([("Net income", D1, H_NI)], H_YEARS, w=440, h=200, top=1250, fmt="{:,.0f}"), "Sources: [1], [2], [3].")}
+<p>The first warning sign appeared in 2025. Interest expense grew by 32%, to ₸1,407 billion, while interest income grew by 24%, to ₸2,695 billion, because deposits became more expensive. The margin slipped from 7.2% to 7.1%.</p>
+<div class="keep"><div class="cap"><b>Table 1.</b> Halyk Bank key figures</div>
+{ptable(["", *H_YEARS, "1H 2025", "1H 2026"],
+        [["Net income, ₸ billion", *[f"{v:,.0f}" for v in H_NI], *[f"{v:,.0f}" for v in H_H1["ni"]]],
+         ["Return on average equity", *[f"{v}%" for v in H_ROAE], "", ""],
+         ["Net interest margin", *[f"{v}%" for v in H_NIM], *[f"{v}%" for v in H_H1["nim"]]],
+         ["Cost-to-income ratio", *[f"{v}%" for v in H_CI], *[f"{v}%" for v in H_H1["ci"]]]],
+        "Sources: [1]-[4].")}</div>
+<h2>3. The first half of 2026</h2>
+<p>Net income for the first six months of 2026 was ₸447.6 billion, 15.3% less than a year earlier. The bank names three causes [4]. The National Bank of Kazakhstan raised minimum reserve requirements, with another increase in April 2026 [5]; without this effect the margin would have been 7.2% instead of 6.8%. The regulator also tightened the rules on retail lending. And the average rate paid on customer accounts rose while the average rate on loans stayed flat, so net interest income grew only 2.6%, to ₸657.6 billion.</p>
+<p>Lending kept growing, with gross loans up 13.2% over the year to June 2026, and the cost of risk stayed at 1.4%. The fall in profit therefore comes from the price of money, not from bad loans.</p>
+<h2>4. Risks</h2>
+<p>The base rate was kept at 18% in March 2026 [5]. If rates stay high for longer, deposits stay expensive and the margin stays under pressure. Further limits on consumer lending would slow the retail loan book, and a slowdown in the economy would raise the cost of risk from its current low level. This note is not investment advice.</p>''',
+    "view_halyk.txt", SRC_HALYK)
+
+ca_pdf = pdf_doc(CA, CA["summary"], f'''
+<h2>1. Data</h2><p>The main series is China's customs data (General Administration of Customs of China), as published by Xinhua [1] and reported country by country by Eurasianet [2, 3]. Each Central Asian country's own figure comes from its statistics or customs service [3-6]. Turkmenistan does not publish one.</p>
+<h2>2. Trade by country</h2>
+<p>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time. China exported $71.2 billion to the region and imported $35.1 billion, a surplus of $36.1 billion. Kazakhstan accounts for 46% of the total and Kyrgyzstan for 26%.</p>
+<div class="keep"><div class="cap"><b>Table 1.</b> China's trade with Central Asia, 2025, $ billion</div>
+{ptable(["", "Total, Chinese data", "Growth", "China's exports", "China's imports", "Total, own data"],
+        ca_rows_html + [["Central Asia", f"{CA_TOTAL:.1f}", "+12%", f"{CA_EXP:.1f}", f"{CA_IMP:.1f}", ""]],
+        "Tajikistan's own total is imports ($2.3 bn) plus exports ($0.52 bn) reported by its customs. Sources: [1]-[6].")}</div>
+<p>Four of the five countries import more from China than they export to it. For Uzbekistan the ratio is more than seven to one. Turkmenistan is the exception: it sold China $8.4 billion of goods, almost all of it natural gas, and bought $1.6 billion. It was also the only country whose trade with China fell, by 5.6%.</p>
+<h2>3. The same trade, counted twice</h2>
+<p>The countries' own statistics often show much less trade (Figure 1). Kazakhstan records $34.1 billion, $14.6 billion less than China. Kyrgyzstan records $4.97 billion against China's $27.2 billion, and the gap grew from $17.1 billion in 2024 [4]. Kyrgyz customs officials say China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use; under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap [4]. In Tajikistan the two sides agree on exports but not on imports [3]. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's [5].</p>
+{pfig(1, "Trade with China in 2025: China's figure and the country's own, $ billion",
+      columns([("China's data", D1, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", L1, [r[5] for r in CA_ROWS if r[5]])],
+              [r[0] for r in CA_ROWS if r[5]], w=440, h=210, top=56, fmt="{:.1f}"), "Sources: [2]-[6].")}
+<p>A headline figure of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up elsewhere. Any use of these numbers should say whose data they are.</p>''',
+    "view_central_asia.txt", SRC_CA)
+
+for slug, html_doc in (("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
+    os.makedirs(os.path.join(HERE, "pdf"), exist_ok=True)
+    with open(os.path.join(HERE, "pdf", slug + ".html"), "w") as f:
+        f.write(html_doc)
