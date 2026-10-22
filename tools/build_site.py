@@ -668,6 +668,147 @@ ca_sections = f'''<h2>Key findings</h2><ol>
 <p>For anyone using these numbers, the practical point is to say whose data they are. A headline of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up somewhere else.</p>
 {view("view_central_asia.txt")}'''
 
+# Kazatomprom: operating and financial reviews for 2023-2025 and the first half of 2026
+U_YEARS = ["2023", "2024", "2025"]
+U_PROD = [21112, 23270, 25839]          # production, tU, 100% basis
+U_SALES = [18069, 16670, 18494]         # Group U3O8 sales, tU
+U_PRICE = [55.09, 69.48, 65.32]         # Group average realized price, $/lb U3O8
+U_SPOT = [60.53, 86.28, 72.75]          # average weekly spot price, $/lb U3O8
+U_C1 = [13.27, 16.59, 18.06]            # C1 cash cost, attributable, $/lb
+U_REV = [1435, 1813, 1803]              # revenue, ₸ billion
+U_EBITDA = [829, 1097, 1133]            # adjusted EBITDA, ₸ billion
+U_ADJ_NP = [None, 577, 570]             # adjusted net profit attributable to owners, ₸ billion
+U_ASIA = [("Asia", 45, 50, 56), ("Americas", 26, 22, 25), ("Europe", 29, 28, 19)]  # % of Group U3O8 sales volume
+U_H1 = dict(prod=(12242, 13291), sales=(7625, 7586), price=(58.54, 67.88), spot=(69.11, 85.98), c1=(17.86, 24.48),
+            rev=(660.2, 717.8), np=(263.2, 240.4), owners=(202.1, 156.6), met=(59.9, 119.5))
+
+SRC_KAP = [
+    ("Kazatomprom, Operating and Financial Review for 2025 (March 2026)",
+     "https://www.kazatomprom.kz/storage/86/fy2025_ofr_eng.pdf", "Kazatomprom, 2025 review"),
+    ("Kazatomprom, Operating and Financial Review for the first half of 2026 (August 2026)",
+     "https://www.kazatomprom.kz/storage/9f/6m_2026_ofr_eng.pdf", "first-half 2026 review"),
+    ("Kazatomprom, Operating and Financial Review for 2024 (March 2025)",
+     "https://www.kazatomprom.kz/storage/c0/fy2024_ofr_eng.pdf", "2024 review"),
+    ("Kazatomprom, Operating and Financial Review for 2023 (March 2024)",
+     "https://www.kazatomprom.kz/storage/29/fy2023_ofr_eng.pdf", "2023 review"),
+    ("Kazatomprom, 1H2025 Results and 2026 Production Strategy (London Stock Exchange RNS, August 2025)",
+     "https://www.investegate.co.uk/announcement/rns/joint-stock-company-national-atomic-company-kazatomprom--kap/kap-1h2025-results-and-2026-production-strategy-/9068901",
+     "1H2025 results and 2026 strategy"),
+]
+
+KAP = dict(
+    slug="kazatomprom-2025",
+    url="research/kazatomprom-2025.html",
+    tag="Companies",
+    kind="Company note",
+    title="More Uranium, Higher Costs: Kazatomprom in 2025-2026",
+    date="23 Oct 2026", date_long="23 October 2026", iso="2026-10-23",
+    line="Output rose 11% in 2025. In early 2026 a new tax and dearer acid raised the cost of each pound by 37%.",
+    summary=("Kazatomprom, the world's largest uranium producer, mined 25,839 tonnes of uranium in 2025, 11% more than "
+             "in 2024. Revenue still slipped 1%, to ₸1.80 trillion, because the average selling price fell 6% and a "
+             "one-off sale of enriched uranium in 2024 did not repeat. In the first half of 2026 the price rose 16%, but "
+             "a higher extraction tax, dearer sulphuric acid and a stronger tenge raised cash cost per pound by 37%, "
+             "and profit attributable to shareholders fell 23%."),
+    art=columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, w=300, h=150, hi=2, top=32, fmt="{:.1f}",
+                desc="Kazatomprom production, thousand tonnes of uranium: 21.1 in 2023, 23.3 in 2024, 25.8 in 2025"),
+    art_title="Production, thousand tU",
+    pdf="reports/kazatomprom-2025.pdf", pages=3,
+    data="data/kazatomprom-2023-2026",
+    og_num="+37%", og_cap="cash cost per pound in 1H 2026, after 11% more uranium in 2025",
+    og_chart=columns([("C1 cash cost", GREY, U_C1 + [U_H1["c1"][1]])], U_YEARS + ["1H 2026"], w=420, h=260, hi=3, top=28,
+                     fmt="{:.1f}"),
+)
+KAP["feat"] = (U_YEARS, "Kazatomprom production, thousand tonnes of uranium",
+               columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, w=520, h=270, hi=2, top=32, fmt="{:.1f}",
+                       desc="Production 2023 to 2025"), "Kazatomprom operating and financial reviews")
+
+data_files(KAP["data"], "Kazatomprom key figures, 2023 to first half of 2026",
+           ["Sources: Kazatomprom operating and financial reviews for 2023, 2024, 2025 and the first half of 2026.",
+            "Production is on a 100% basis (all mines the Group consolidates or holds a stake in, counted in full).",
+            "Group sales and the Group average realized price cover U3O8 only, not enriched uranium or fuel pellets.",
+            "Spot price is the average of weekly spot prices reported by Kazatomprom from third-party price providers.",
+            "C1 cash cost is on an attributable basis, in US dollars per pound of U3O8, as reported by the company.",
+            "Adjusted net profit attributable to owners excludes one-off items. It is not shown for 2023 because the 2023 report used a different adjusted measure.",
+            "Sales by region are the company's own split by the domicile of the buyer's ultimate owner or decision-maker, in % of Group sales volume."],
+           [("Annual", ["Indicator", *U_YEARS],
+             [["Production, tU (100% basis)", *U_PROD], ["Group U3O8 sales, tU", *U_SALES],
+              ["Group average realized price, $/lb", *U_PRICE], ["Average weekly spot price, $/lb", *U_SPOT],
+              ["C1 cash cost (attributable), $/lb", *U_C1],
+              ["Revenue, ₸ billion", *U_REV], ["Adjusted EBITDA, ₸ billion", *U_EBITDA],
+              ["Adjusted net profit attributable to owners, ₸ billion", *["" if v is None else v for v in U_ADJ_NP]]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Production, tU (100% basis)", *U_H1["prod"]], ["Group U3O8 sales, tU", *U_H1["sales"]],
+              ["Group average realized price, $/lb", *U_H1["price"]], ["Average weekly spot price, $/lb", *U_H1["spot"]],
+              ["C1 cash cost (attributable), $/lb", *U_H1["c1"]], ["Revenue, ₸ billion", *U_H1["rev"]],
+              ["Net profit, ₸ billion", *U_H1["np"]], ["Net profit attributable to owners, ₸ billion", *U_H1["owners"]],
+              ["Mineral extraction tax, ₸ billion", *U_H1["met"]]]),
+            ("Sales by region", ["Region, % of Group sales", *U_YEARS], [list(r) for r in U_ASIA])])
+
+KAP["notes"] = '''<ul class="notes">
+<li>All figures come from Kazatomprom's own operating and financial reviews, listed under Sources. Production is on a 100% basis, which counts every mine the company consolidates or holds a stake in at full volume.</li>
+<li>Sales volumes and the average realized price cover natural uranium (U3O8) only. Enriched uranium sold to Ulba-FA in 2024 is in revenue but not in these volumes.</li>
+<li>Reported net profit for 2024 includes a one-off gain of ₸296 billion from taking control of the Budenovskoye joint venture, so annual figures use the company's adjusted net profit attributable to owners.</li>
+<li>"Revenue without enriched uranium" and the price-minus-cost comparison are calculated by the author from the reported figures, as are percentage changes.</li>
+</ul>'''
+
+kap_sections = f'''<h2>Key findings</h2><ol>
+<li>Production rose 11% in 2025, to 25,839 tonnes of uranium (tU), and is 22% higher than in 2023.</li>
+<li>Revenue slipped 1%, to ₸1,803 billion. Natural uranium sales grew 16%, but ₸252 billion of enriched uranium sold in 2024 did not repeat.</li>
+<li>Asia took 56% of the uranium the Group sold in 2025, up from 45% in 2023.</li>
+<li>In the first half of 2026 the realized price rose 16%, cash cost per pound rose 37%, and profit attributable to shareholders fell 23%.</li></ol>
+{fig(1, "Production, thousand tonnes of uranium (100% basis)",
+     columns([("Production", GREY, [v / 1000 for v in U_PROD])], U_YEARS, hi=2, top=32, fmt="{:.1f}",
+             desc="Production rose from 21.1 thousand tonnes in 2023 to 23.3 in 2024 and 25.8 in 2025"),
+     src_link(0, SRC_KAP) + "; " + src_link(2, SRC_KAP), KAP["data"])}
+<h2>The world's largest producer is still growing</h2>
+<p>Kazatomprom says its own share of output was 20% of the world's primary uranium supply in 2025, and that all mines in Kazakhstan together produced about 39% of global output, citing the consultancy UxC. It sold 18,494 tU of natural uranium in 2025, 11% more than a year earlier. That part of the business earned ₸1,638 billion, up 16%, and made up 91% of revenue against 78% in 2024.</p>
+<p>The rest of the 2024 revenue was enriched uranium sold to Ulba-FA, a fuel plant in Ust-Kamenogorsk: ₸252 billion, or 14% of the total. In 2025 this line was zero. Without it, 2024 revenue would have been about ₸1,561 billion, and 2025 would show growth of about 15% instead of a 1% fall.</p>
+<p>Adjusted profit attributable to shareholders was almost unchanged at ₸570 billion. In July 2026 the company paid ₸335 billion of dividends for 2025, about 59% of that profit.</p>
+<h2>More of it goes to Asia</h2>
+<p>Asia's share of the Group's sales rose from 45% in 2023 to 56% in 2025, while Europe's fell from 29% to 19% (Table 1). The company splits sales by where the buyer's owner or decision-maker is based, not by country, so it does not show China on its own. China is visible in other parts of the report. Uranium for China leaves by rail through Alashankou, on the Kazakh-Chinese border. And Ulba-FA, a joint venture with Chinese partners set up in 2021, delivered fuel assemblies with slightly more than 200 tonnes of low-enriched uranium to Chinese nuclear plants in 2025, its full design capacity.</p>
+<div class="table-title">Table 1. Group uranium sales by region, % of volume</div>
+{table(["", *U_YEARS], [[n, f"{a}%", f"{b}%", f"{c}%"] for n, a, b, c in U_ASIA])}
+<p class="table-note">Region is the domicile of the buyer's ultimate owner or decision-maker. Source: {src_link(0, SRC_KAP)}.</p>
+<p>Shipments to the West go another way. In 2025, 48% of Western-bound uranium from Kazakhstan travelled by the Trans-Caspian route through Aktau rather than through Russia.</p>
+<h2>The company's price follows the market slowly</h2>
+<p>Most of Kazatomprom's uranium is sold under long-term contracts, and many of them follow the spot price with a delay. When spot jumped in 2024, the company's price rose less, and when spot fell 16% in 2025, its price fell only 6% (Figure 2). In the first half of 2026 the gap opened again: spot averaged $85.98 per pound, while Kazatomprom received $67.88.</p>
+{fig(2, "Kazatomprom's average realized price and the spot price, $ per pound of U3O8",
+     columns([("Kazatomprom realized price", GREY, U_PRICE + [U_H1["price"][1]]), ("Spot price", ACCENT, U_SPOT + [U_H1["spot"][1]])],
+             U_YEARS + ["1H 2026"], w=560, h=260, top=100, fmt="{:.0f}",
+             desc="Realized price 55, 69, 65 and 68 dollars per pound; spot 61, 86, 73 and 86"),
+     src_link(0, SRC_KAP) + "; " + src_link(1, SRC_KAP), KAP["data"])}
+<h2>In 2026 costs are rising faster than the price</h2>
+<p>In the first six months of 2026 revenue rose 9%, to ₸718 billion, because the realized price climbed 16%. But the cash cost of producing a pound (C1, on the company's attributable basis) rose 37%, from $17.86 to $24.48 (Figure 3). Of the $9.34 gain in price, $6.62 went on higher costs.</p>
+{fig(3, "C1 cash cost, $ per pound of U3O8 (attributable basis)",
+     columns([("C1 cash cost", GREY, U_C1 + list(U_H1["c1"]))], U_YEARS + ["1H 2025", "1H 2026"], w=560, h=250, hi=4, top=28,
+             fmt="{:.2f}", desc="C1 cash cost 13.27 in 2023, 16.59 in 2024, 18.06 in 2025, 17.86 in 1H 2025 and 24.48 in 1H 2026"),
+     src_link(1, SRC_KAP) + "; " + src_link(0, SRC_KAP) + "; " + src_link(2, SRC_KAP), KAP["data"])}
+<p>The company names three causes. From January 2026 the mineral extraction tax depends on how much each licence produces and on the uranium price; Kazatomprom's average rate rose from a flat 9% to 12.4%, and the tax it accrued doubled, to ₸120 billion. Sulphuric acid, which is pumped underground to dissolve the uranium, cost 39% more per tonne because of shortages in Kazakhstan. And a stronger tenge makes local costs bigger in dollars.</p>
+<p>The acid problem will last longer than planned. Kazatomprom is building its own acid plant, but construction was suspended after possible paleontological finds on the site, and the start has moved from early 2027 to between the third quarter of 2027 and the first quarter of 2028.</p>
+<p>Net profit fell 9%, to ₸240 billion, mostly because of exchange-rate losses and higher finance costs. The share left for Kazatomprom's own shareholders fell further, by 23%, to ₸157 billion, because more of the profit of partly owned mines went to their other owners. In August the company cut its 2026 revenue guidance from ₸2,200-2,300 billion to ₸2,100-2,200 billion and raised its C1 cost guidance to $25.50-27.00 per pound.</p>
+<div class="table-title">Table 2. Kazatomprom key figures</div>
+{table(["", *U_YEARS, "1H 2025", "1H 2026"],
+       [["Production, tU", *map(n0, U_PROD), *map(n0, U_H1["prod"])],
+        ["Group sales, tU", *map(n0, U_SALES), *map(n0, U_H1["sales"])],
+        ["Realized price, $/lb", *[f"{v:.2f}" for v in U_PRICE], *[f"{v:.2f}" for v in U_H1["price"]]],
+        ["C1 cash cost, $/lb", *[f"{v:.2f}" for v in U_C1], *[f"{v:.2f}" for v in U_H1["c1"]]],
+        ["**Revenue, ₸ billion", *map(n0, U_REV), *[f"{v:.0f}" for v in U_H1["rev"]]],
+        ["Adjusted EBITDA, ₸ billion", *map(n0, U_EBITDA), "363", "371"],
+        ["**Profit to shareholders, ₸ billion", "n/a", *map(n0, U_ADJ_NP[1:]), *[f"{v:.0f}" for v in U_H1["owners"]]]])}
+<p class="table-note">Annual profit to shareholders is adjusted for one-off items; half-year figures had none. Sources: {src_link(0, SRC_KAP)}; {src_link(1, SRC_KAP)}; {src_link(2, SRC_KAP)}; {src_link(3, SRC_KAP)}.</p>
+<h2>Growing more slowly on purpose</h2>
+<p>Kazatomprom is not trying to produce as much as its licences allow. In August 2025 it said its nominal 2026 production level would be about 10% lower, 29,697 tU instead of 32,777 tU. Its 2026 guidance is 27,500 to 29,000 tU, and the company says this depends on sulphuric acid being available.</p>
+<h2>Risks</h2><ol>
+<li>Profit depends on the uranium price, which fell 16% on the spot market in 2025 and rose again in 2026.</li>
+<li>The new extraction tax rises with both output and price, so it takes a larger share when the market is strong.</li>
+<li>Acid shortages could limit production until the company's own plant starts, now no earlier than late 2027.</li>
+<li>A stronger tenge lowers revenue in tenge and raises costs in dollars.</li></ol>
+{view("view_kazatomprom.txt")}'''
+
+
+report(KAP, kap_sections,
+       [("Production, 2025", "25,839 tU"), ("Production growth", "+11%"), ("Revenue, 2025", "₸1.80 trn"),
+        ("Cash cost per lb, 1H 2026", "+37%"), ("Profit to shareholders, 1H 2026", "−23%")], SRC_KAP, disclaimer=True)
 report(HALYK, halyk_sections,
        [("Net income, 2025", "₸1.06 trn"), ("Return on equity, 2025", "32.6%"), ("Net income, 1H 2026", "−15.3%"),
         ("Interest margin, 1H 2026", "6.8%"), ("Cost of risk, 1H 2026", "1.4%")], SRC_HALYK, disclaimer=True)
@@ -678,7 +819,7 @@ report(CA, ca_sections,
 TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
                  columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22,
                          desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
-REPORTS = [CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
+REPORTS = [KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
 
 
 # ---------- Home ----------
@@ -689,9 +830,9 @@ COVERAGE = [
     dict(code="KSPI", tag="Company · Kazakhstan", name="Kaspi.kz", band="#d9352b",
          what="Payments, online shopping and loans in one app", r=KASPI,
          stats=[("Revenue, 2025", "₸4.05 trn"), ("Revenue growth", "+60%"), ("Net margin", "26.4%")]),
-    dict(code="HEPS", tag="Company · Turkey", name="Hepsiburada", band="#c2410c",
-         what="E-commerce marketplace, controlled by Kaspi since 2025", r=KASPI,
-         stats=[("Segment revenue, 2025", "₸1.03 trn"), ("Net loss, 2025", "₸93 bn"), ("Kaspi's stake, Jan 2026", "85%")]),
+    dict(code="KAP", tag="Company · Kazakhstan", name="Kazatomprom", band="#3f5e6e",
+         what="The world's largest uranium producer", r=KAP,
+         stats=[("Production, 2025", "25,839 tU"), ("Sales to Asia, 2025", "56%"), ("Cash cost per lb, 1H 2026", "+37%")]),
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
          what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
@@ -717,7 +858,7 @@ def card(c):
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz and Halyk Bank, Kazakhstan's trade with China, and China's trade with the five Central Asian states. Every source is cited, and the underlying data is available to download.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank and Kazatomprom, Kazakhstan's trade with China, and China's trade with the five Central Asian states. Every source is cited, and the underlying data is available to download.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -750,6 +891,7 @@ home = f'''<section class="masthead"><div class="wrap">
 <div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
 <p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
+    dict(name="Kazatomprom key figures", cover="2023-1H2026 · production, price, cost, profit, sales by region", base=KAP["data"]),
     dict(name="China-Central Asia goods trade", cover="2025 · five countries · Chinese and national data", base=CA["data"]),
     dict(name="Halyk Bank key figures", cover="2023-1H2026 · net income, margin, return on equity", base=HALYK["data"]),
     dict(name="Kazakhstan-China goods trade", cover="2020-2025 · Kazakh and Chinese data · top products", base=TRADE["data"]),
@@ -779,6 +921,9 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
+    dict(name="Kazatomprom key figures", cover="2023-1H2026", unit="tU, $/lb, ₸ billion, %",
+         what="Production, sales, realized and spot price, C1 cash cost, revenue, EBITDA, profit to shareholders; first half of 2025 and 2026; sales by region.",
+         src="Kazatomprom operating and financial reviews", base=KAP["data"], r=KAP),
     dict(name="China-Central Asia goods trade", cover="2025", unit="$ billion",
          what="China's trade with Kazakhstan, Kyrgyzstan, Uzbekistan, Turkmenistan and Tajikistan: totals, growth, exports, imports, and each country's own figure.",
          src="GACC via Xinhua and Eurasianet; national statistics", base=CA["data"], r=CA),
@@ -876,7 +1021,7 @@ redirect("contact.html", "about.html#contact")
 
 urls = ["", "research.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-17</lastmod></url>\n" for u in urls) + "</urlset>\n")
+      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-23</lastmod></url>\n" for u in urls) + "</urlset>\n")
 
 write("assets/favicon.svg", FAVICON)
 for name in ("style.css", "site.js"):
@@ -941,14 +1086,15 @@ def pfig(n, title, chart, note):
 
 
 def pdf_doc(r, abstract, body, view_file, refs):
-    view_text = open(os.path.join(HERE, view_file)).read().strip()
+    path = os.path.join(HERE, view_file)
+    view_text = open(path).read().strip() if os.path.exists(path) else ""
     refs_html = "".join(f"<li>{escape(n)}. {u}</li>" for n, u, *_ in refs)
     title = r["title"].replace(": ", ":<br>", 1)
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{PDF_CSS}</style></head><body>'
             f'<div class="title"><h1>{title}</h1><div class="au">{AUTHOR}</div>'
             f'<div class="dt">Steppe &amp; Silk Research, {r["date_long"]}</div></div>'
             f'<div class="abs"><b>Summary.</b> {abstract}</div>{body}'
-            f'<h2>Author\'s view</h2><p>{view_text}</p><h2>References</h2><ol class="ref">{refs_html}</ol>'
+            + (f'<h2>Author\'s view</h2><p>{view_text}</p>' if view_text else '') + f'<h2>References</h2><ol class="ref">{refs_html}</ol>'
             '<div class="meth">Note on method: AI (Claude) was used as a tutor and editor and helped collect the data and draw the figures. '
             'Figures are taken from the sources listed; calculations are the author\'s.</div></body></html>')
 
@@ -991,7 +1137,36 @@ ca_pdf = pdf_doc(CA, CA["summary"], f'''
 <p>A headline figure of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up elsewhere. Any use of these numbers should say whose data they are.</p>''',
     "view_central_asia.txt", SRC_CA)
 
-for slug, html_doc in (("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
+kap_pdf = pdf_doc(KAP, KAP["summary"], f'''
+<h2>1. Data</h2><p>All figures come from Kazatomprom's operating and financial reviews for 2023, 2024 and 2025 and for the first half of 2026 [1-4], and from its August 2025 results announcement [5]. Production is on a 100% basis. Sales volumes and the average realized price cover natural uranium (U3O8) only. Annual profit to shareholders is the company's adjusted measure, which removes a one-off gain of ₸296 billion in 2024.</p>
+<h2>2. Results for 2023-2025</h2>
+<p>Production rose from 21,112 tU in 2023 to 25,839 tU in 2025, an increase of 22%. The company estimates that its attributable output was 20% of the world's primary uranium supply in 2025 [1]. Revenue fell 1% in 2025, to ₸1,803 billion, although natural uranium sales grew 16%: in 2024 the company had also sold ₸252 billion of enriched uranium to Ulba-FA, and this did not repeat. Without that item, revenue would have grown by about 15%. Adjusted profit attributable to shareholders was ₸570 billion, against ₸577 billion in 2024.</p>
+{pfig(1, "Production, thousand tonnes of uranium (100% basis)",
+      columns([("Production", D1, [v / 1000 for v in U_PROD])], U_YEARS, w=440, h=190, top=32, fmt="{:.1f}"), "Sources: [1], [3].")}
+<p>Most uranium is sold under long-term contracts that follow the spot price with a delay. The realized price fell 6% in 2025, to $65.32 per pound, while the spot price fell 16%, to $72.75 [1].</p>
+<h2>3. Sales by region</h2>
+<p>Asia's share of Group sales rose from 45% in 2023 to 56% in 2025, and Europe's fell from 29% to 19% [1]. The company does not report China separately, but uranium for China is shipped by rail through Alashankou, and Ulba-FA, a joint venture with Chinese partners, supplied fuel assemblies containing slightly more than 200 tonnes of low-enriched uranium to Chinese nuclear plants in 2025 [1]. In the same year 48% of Western-bound shipments used the Trans-Caspian route rather than Russia [1].</p>
+<div class="keep"><div class="cap"><b>Table 1.</b> Kazatomprom key figures</div>
+{ptable(["", *U_YEARS, "1H 2025", "1H 2026"],
+        [["Production, tU", *map(n0, U_PROD), *map(n0, U_H1["prod"])],
+         ["Realized price, $/lb", *[f"{v:.2f}" for v in U_PRICE], *[f"{v:.2f}" for v in U_H1["price"]]],
+         ["Spot price, $/lb", *[f"{v:.2f}" for v in U_SPOT], *[f"{v:.2f}" for v in U_H1["spot"]]],
+         ["C1 cash cost, $/lb", *[f"{v:.2f}" for v in U_C1], *[f"{v:.2f}" for v in U_H1["c1"]]],
+         ["Revenue, ₸ billion", *map(n0, U_REV), *[f"{v:.0f}" for v in U_H1["rev"]]],
+         ["Profit to shareholders, ₸ billion", "n/a", *map(n0, U_ADJ_NP[1:]), *[f"{v:.0f}" for v in U_H1["owners"]]],
+         ["Asia, % of Group sales", *[f"{v}%" for v in U_ASIA[0][1:]], "", ""]],
+        "Annual profit to shareholders is adjusted for one-off items. Sources: [1]-[4].")}</div>
+<h2>4. The first half of 2026</h2>
+<p>Revenue rose 9%, to ₸718 billion, as the realized price climbed 16% to $67.88 [2]. C1 cash cost rose faster, by 37% to $24.48 per pound, so of the $9.34 gain in price $6.62 was absorbed by costs. The company gives three causes [2]: the mineral extraction tax, which since January 2026 depends on output and price, rose from a flat 9% to an average of 12.4% and doubled in money terms to ₸120 billion; sulphuric acid cost 39% more per tonne because of local shortages; and the tenge strengthened against the dollar. The company's own acid plant has been delayed to between the third quarter of 2027 and the first quarter of 2028 after possible paleontological finds on the site.</p>
+{pfig(2, "C1 cash cost, $ per pound of U3O8 (attributable basis)",
+      columns([("C1", D1, U_C1 + list(U_H1["c1"]))], U_YEARS + ["1H 2025", "1H 2026"], w=440, h=190, top=28, fmt="{:.2f}"),
+      "Sources: [1]-[3].")}
+<p>Net profit fell 9%, to ₸240 billion, mainly because of exchange-rate losses and higher finance costs, and profit attributable to shareholders fell 23%, to ₸157 billion, as a larger part went to minority owners of the mines [2]. The company lowered its 2026 revenue guidance to ₸2,100-2,200 billion and raised its C1 guidance to $25.50-27.00 per pound, while keeping production guidance at 27,500-29,000 tU [2]. In August 2025 it had already lowered its nominal 2026 production level by about 10%, to 29,697 tU [5].</p>
+<h2>5. Risks</h2>
+<p>Profit depends on the uranium price. The new extraction tax rises with output and price, so it takes a larger share in a strong market. Acid shortages could limit production until the new plant starts, and a stronger tenge lowers revenue in tenge while raising costs in dollars. This note is not investment advice.</p>''',
+    "view_kazatomprom.txt", SRC_KAP)
+
+for slug, html_doc in (("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
     os.makedirs(os.path.join(HERE, "pdf"), exist_ok=True)
     with open(os.path.join(HERE, "pdf", slug + ".html"), "w") as f:
         f.write(html_doc)
