@@ -16,7 +16,7 @@ EMAIL = "chingiz.bakytjanov@gmail.com"
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500'
-         '&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400'
+         '&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400'
          '&display=swap" rel="stylesheet">')
 
 INK, GREY, ACCENT, MUTED = "#14202e", "#cfc6b8", "#0b6e79", "#5f6873"
@@ -220,6 +220,7 @@ def src_link(i, srcs, pre="../"):
 
 KASPI = dict(
     slug="kaspi-hepsiburada",
+    logos=[("kaspi", "Kaspi.kz"), ("hepsiburada", "Hepsiburada")],
     sector="Banks & fintech",
     url="research/kaspi-hepsiburada.html",
     tag="Companies",
@@ -367,6 +368,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
             'It is not investment advice or a recommendation to buy or sell any security.</p>') if disclaimer else ""
     body = f'''<article class="report"><div class="wrap">
 <header class="report-head">
+{"".join(f'<img class="report-logo" src="{pre}assets/logos/{l}.svg" alt="{escape(n)} logo">' for l, n in r.get("logos", []))}
 <div class="label"><a href="{pre}research.html#{r["tag"].lower()}">{kind_label(r)}</a></div>
 <h1>{r["title"]}</h1>
 <p class="dek">{r["line"]}</p>
@@ -530,6 +532,7 @@ SRC_HALYK = [
 
 HALYK = dict(
     slug="halyk-bank-2026",
+    logos=[("halyk", "Halyk Bank")],
     sector="Banks & fintech",
     url="research/halyk-bank-2026.html",
     tag="Companies",
@@ -733,6 +736,7 @@ SRC_KAP = [
 
 KAP = dict(
     slug="kazatomprom-2025",
+    logos=[("kazatomprom", "Kazatomprom")],
     sector="Mining & energy",
     url="research/kazatomprom-2025.html",
     tag="Companies",
@@ -1007,6 +1011,7 @@ SRC_GEELY = [
 
 GEELY = dict(
     slug="geely-2026",
+    logos=[("geely", "Geely Automobile Holdings"), ("zeekr", "Zeekr")],
     url="research/geely-2026.html",
     sector="Manufacturing",
     tag="Companies",
@@ -1121,22 +1126,28 @@ REPORTS = [GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first o
 
 
 # Companies and countries the research covers; every number comes from a report on the site.
-COVERAGE = [
-    dict(code="KSPI", tag="Company · Kazakhstan", name="Kaspi.kz", band="#d9352b",
+COVERAGE = [  # companies first, then countries; logo files are in assets/logos (credits on the Terms page)
+    dict(code="KSPI", logo="kaspi", tag="Company · Kazakhstan", name="Kaspi.kz", band="#d9352b",
          what="Payments, online shopping and loans in one app", r=KASPI,
          stats=[("Revenue, 2025", "₸4.05 trn"), ("Revenue growth", "+60%"), ("Net margin", "26.4%")]),
-    dict(code="KAP", tag="Company · Kazakhstan", name="Kazatomprom", band="#3f5e6e",
+    dict(code="HSBK", logo="halyk", tag="Company · Kazakhstan", name="Halyk Bank", band="#1f7a4d",
+         what="Kazakhstan's largest bank by assets", r=HALYK,
+         stats=[("Net income, 2025", "₸1.06 trn"), ("Return on equity", "32.6%"), ("Net income, 1H 2026", "−15.3%")]),
+    dict(code="KAP", logo="kazatomprom", tag="Company · Kazakhstan", name="Kazatomprom", band="#3f5e6e",
          what="The world's largest uranium producer", r=KAP,
-         stats=[("Production, 2025", "25,839 tU"), ("Sales to Asia, 2025", "56%"), ("Cash cost per lb, 1H 2026", "+37%")]),
+         stats=[("Production, 2025", "25,839 tU"), ("Sales to Asia, 2025", "56%"), ("Cost per lb, 1H 2026", "+37%")]),
+    dict(code="0175", logo="geely", tag="Company · China", name="Geely Auto", band="#1d5fa8",
+         what="Carmaker that owns Geely, Lynk & Co and Zeekr", r=GEELY,
+         stats=[("Revenue, 2025", "RMB345 bn"), ("Exports, 1H 2026", "+158%"), ("Zeekr sales, 1H 2026", "+97%")]),
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
          what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
-    dict(code="HSBK", tag="Company · Kazakhstan", name="Halyk Bank", band="#1f7a4d",
-         what="Kazakhstan's largest bank by assets", r=HALYK,
-         stats=[("Net income, 2025", "₸1.06 trn"), ("Return on equity", "32.6%"), ("Net income, 1H 2026", "−15.3%")]),
     dict(code="CA", tag="Region", name="Central Asia", band="#8a5a2b",
          what="Five states whose trade with China passed $100 billion in 2025", r=CA,
          stats=[("Trade with China, 2025", "$106.3 bn"), ("China's surplus", "$36.1 bn"), ("Kyrgyzstan, own data", "$4.97 bn")]),
+    dict(code="RU", tag="Country", name="Russia", band="#4a5562",
+         what="China's largest neighbour by trade, where cars fell sharply in 2025", r=RU,
+         stats=[("Trade with China, 2025", "$228.1 bn"), ("Change, 2025", "−6.9%"), ("Chinese cars bought", "−49%")]),
     dict(code="CN", tag="Country", name="China", band="#b8261c",
          what="Kazakhstan's main trading partner in these reports", r=TRADE,
          stats=[("Goods to Kazakhstan, 2025", "$18.9 bn"), ("Same flow, Chinese data", "$29.7 bn"), ("Top buy from Kazakhstan", "Ores")]),
@@ -1144,7 +1155,9 @@ COVERAGE = [
 
 
 def card(c):
-    return (f'<a class="card" href="{c["r"]["url"]}"><div class="card-band" style="background:{c["band"]}"><b>{c["code"]}</b><span>{c["tag"]}</span></div>'
+    mark = (f'<img src="assets/logos/{c["logo"]}.svg" alt="{escape(c["name"])} logo">' if c.get("logo")
+            else f'<b style="color:{c["band"]}">{c["code"]}</b>')
+    return (f'<a class="card" href="{c["r"]["url"]}"><div class="card-band" style="border-top-color:{c["band"]}">{mark}<span>{c["tag"]}</span></div>'
             f'<div class="card-body"><h3>{c["name"]}</h3><p class="muted">{c["what"]}</p>'
             '<ul class="card-stats">' + "".join(f'<li><span>{k}</span><b>{v}</b></li>' for k, v in c["stats"]) + '</ul>'
             f'<span class="card-more">{c["r"]["kind"]}</span></div></a>')
@@ -1291,7 +1304,8 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names and trademarks belong to their owners. Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, Geely Automobile Holdings, Zeekr and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz.</p>
+<p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>
 </div></div></section>'''
@@ -1336,8 +1350,8 @@ OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#faf7f2;font-fam
           ".c{box-sizing:border-box;width:1200px;height:630px;padding:56px 64px;display:flex;flex-direction:column;border-top:14px solid " + ACCENT + "}"
           ".top{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:20px;letter-spacing:1px;text-transform:uppercase}"
           ".top b{color:" + ACCENT + ";font-weight:500}.mid{flex:1;display:flex;gap:48px;align-items:center}"
-          "h1{font-family:'IBM Plex Serif',Georgia,serif;font-size:50px;line-height:1.15;margin:0 0 28px;font-weight:600}"
-          ".num{font-family:'IBM Plex Serif',Georgia,serif;font-size:76px;font-weight:600;color:" + ACCENT + ";line-height:1}"
+          "h1{font-family:'IBM Plex Sans',Arial,sans-serif;font-size:50px;line-height:1.15;margin:0 0 28px;font-weight:600}"
+          ".num{font-family:'IBM Plex Sans',Arial,sans-serif;font-size:76px;font-weight:600;color:" + ACCENT + ";line-height:1}"
           ".cap{font-size:24px;color:#4a5562;margin-top:8px}.chart{width:420px;flex:none}"
           ".foot{display:flex;justify-content:space-between;font-size:22px;color:#4a5562;border-top:2px solid " + INK + ";padding-top:18px}")
 og_dir = os.path.join(HERE, "og")
