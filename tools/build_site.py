@@ -159,9 +159,12 @@ EXPORTS = [9.0, 9.9, 13.2, 14.7, 14.9, 15.2]
 IMPORTS = [6.4, 8.3, 11.0, 16.8, 15.2, 18.9]
 TURNOVER = [15.4, 18.2, 24.2, 31.5, 30.1, 34.1]
 BALANCE = [2.6, 1.6, 2.2, -2.1, -0.3, -3.7]
-CN_IMPORTS_FROM_KZ = [9.74, 11.27, 14.82, 16.32, 15.86, 18.98]
-CN_EXPORTS_TO_KZ = [11.71, 13.98, 16.17, 24.70, 27.96, 29.70]
-CN_TURNOVER = [21.5, 25.2, 31.0, 41.0, 43.8, 48.7]
+# GACC monthly bulletin, table (2), December issue of each year, US$ thousand
+CN_KZ_RAW = [(21446707, 11707318, 9739389), (25250692, 13981061, 11269630), (31174483, 16355236, 14819247),
+             (41021166, 24697397, 16323769), (43819657, 27964080, 15855577), (48675864, 29695302, 18980562)]
+CN_TURNOVER = [round(a / 1e6, 2) for a, _, _ in CN_KZ_RAW]
+CN_EXPORTS_TO_KZ = [round(b / 1e6, 2) for _, b, _ in CN_KZ_RAW]
+CN_IMPORTS_FROM_KZ = [round(c / 1e6, 2) for _, _, c in CN_KZ_RAW]
 TOP_EXPORTS = [("Ores, slag and ash", 3.94), ("Oil and mineral fuels", 3.28), ("Copper", 2.69),
                ("Inorganic chemicals (incl. uranium)", 1.78), ("Iron and steel", 1.10)]
 TOP_IMPORTS = [("Machinery and equipment", 3.70), ("Electrical and electronic equipment", 2.39), ("Vehicles", 2.31),
@@ -204,6 +207,8 @@ SRC_TRADE = [
      "https://www.pwccn.com/zh/issues-based/invest-in-kazakhstan-apr2026.pdf"),
     ("Trading Economics, Kazakhstan exports to China and imports from China (UN Comtrade)",
      "https://tradingeconomics.com/kazakhstan/exports/china"),
+    ("General Administration of Customs of China, Monthly Bulletin, table (2) Imports and Exports by Country (Region) of Origin/Destination, December 2025",
+     "http://english.customs.gov.cn/Statics/ef1a478f-8a43-4b51-9690-fb975762a2c2.html", "GACC monthly bulletin"),
 ]
 
 
@@ -215,6 +220,7 @@ def src_link(i, srcs, pre="../"):
 
 KASPI = dict(
     slug="kaspi-hepsiburada",
+    sector="Banks & fintech",
     url="research/kaspi-hepsiburada.html",
     tag="Companies",
     kind="Company note",
@@ -260,10 +266,15 @@ def pdf_link(r, pre=""):
     return f'<a class="pdf-link" href="{pre}{r["pdf"]}" download>PDF <span>{r["pages"]} pp.</span></a>'
 
 
+def kind_label(r):
+    """Company notes carry their sector, e.g. "Company note · Banks & fintech"."""
+    return r["kind"] + (f' &middot; {r["sector"]}' if r.get("sector") else "")
+
+
 def row(r, pre=""):
     return f'''<div class="row" data-type="{r["tag"].lower()}">
 <div class="row-date"><time datetime="{r["iso"]}">{r["date"]}</time></div>
-<div class="row-main"><div class="label">{r["kind"]}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
+<div class="row-main"><div class="label">{kind_label(r)}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
 <div class="row-actions"><a href="{pre}{r["url"]}">Read</a>{pdf_link(r, pre)}<a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
 
@@ -334,9 +345,17 @@ data_files(TRADE["data"], "Kazakhstan's goods trade with China, 2020-2025 ($ bil
 
 # ---------- Report pages ----------
 
-def report(r, sections, facts, sources, disclaimer=False):
+def report(r, sections, facts, sources, disclaimer=False, meta=None):
+    """Company notes open with five fact tiles. Trade briefs are statistical bulletins: a box describing
+    the data (meta) and a table of key indicators (facts = (head, rows)) instead of the tiles."""
     pre = "../"
-    kv = "".join(f'<div class="fact"><div class="fact-num">{v}</div><div class="fact-label">{k}</div></div>' for k, v in facts)
+    if meta:
+        head, rows = facts
+        kv = ('<div class="bulletin-head"><dl class="meta">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in meta) + '</dl>'
+              f'<div class="table-title">Key indicators</div>{table(head, rows)}</div>')
+    else:
+        kv = "".join(f'<div class="fact"><div class="fact-num">{v}</div><div class="fact-label">{k}</div></div>' for k, v in facts)
+        kv = f'<div class="facts">{kv}</div>' 
     srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u, *_ in sources)
     cite = (f'{AUTHOR} (2026). <i>{r["title"]}</i>. Steppe &amp; Silk Research, {r["date_long"]}. '
             f'{SITE}/{r["url"]}')
@@ -348,22 +367,23 @@ def report(r, sections, facts, sources, disclaimer=False):
             'It is not investment advice or a recommendation to buy or sell any security.</p>') if disclaimer else ""
     body = f'''<article class="report"><div class="wrap">
 <header class="report-head">
-<div class="label"><a href="{pre}research.html#{r["tag"].lower()}">{r["kind"]}</a></div>
+<div class="label"><a href="{pre}research.html#{r["tag"].lower()}">{kind_label(r)}</a></div>
 <h1>{r["title"]}</h1>
 <p class="dek">{r["line"]}</p>
 <div class="byline">By <a href="{pre}about.html">{AUTHOR}</a> &middot; Published <time datetime="{r["iso"]}">{r["date_long"]}</time></div>
 {dl}
 </header>
-<div class="facts">{kv}</div>
+{kv}
 <div class="report-body">
-<h2>Summary</h2><p>{r["summary"]}</p>
+<h2>{"1. " if meta else ""}Summary</h2><p>{r["summary"]}</p>
 {sections}
 {warn}
-<h2>Notes and method</h2>{r["notes"]}
+<h2>{"Methodology" if meta else "Notes and method"}</h2>{r["notes"]}
 <h2>Sources</h2><ol class="sources">{srcs}</ol>
 <h2>Download</h2>{dl}
 <div class="cite"><div class="label">How to cite</div><p>{cite}</p></div>
 <p class="corrections">Found an error? Email <a href="mailto:{EMAIL}">{EMAIL}</a>. Corrections are listed here with their date.</p>
+{"".join(f'<p class="corrections"><b>Correction, {d}:</b> {c}</p>' for d, c in r.get("corrections", []))}
 </div>
 </div></article>'''
     ld = {"@context": "https://schema.org", "@type": "Article", "headline": r["title"],
@@ -416,48 +436,62 @@ kaspi_sections = f'''<h2>Key findings</h2><ol>
 <h2>My view</h2><blockquote class="view">I don't consider the fall in margin a big problem. Large acquisitions and investments dilute margins at first, because the new business is not yet as profitable as the main one. In my opinion, it is a great tactic to grow Kaspi beyond Kazakhstan, because it gives the company more ways to make a profit. I would buy Kaspi shares as a long-term investment.</blockquote>'''
 
 trade_notes = '''<ul class="notes">
-<li>The main series are Kazakhstan's official statistics (Bureau of National Statistics, Ministry of Trade and Integration, State Revenue Committee), as published by government bodies and national media.</li>
-<li>Figures for 2020 and 2021 come from news reports citing official bodies and are less reliable than later years. Turnover for 2022 is the sum of exports and imports.</li>
-<li>The 2023 import figure ($16.8 billion) is an early estimate that was later revised to about $15.4 billion.</li>
-<li>Product groups are Kazakhstan's figures reported to UN Comtrade. Chinese customs data are shown separately and never mixed with the Kazakh series.</li>
+<li>Kazakh series: Bureau of National Statistics, Ministry of Trade and Integration and State Revenue Committee, as published by government bodies and national media. Figures for 2020 and 2021 come from news reports citing these bodies and are less reliable than later years. Turnover for 2022 is the sum of exports and imports. The 2023 import figure ($16.8 billion) is an early estimate, later revised to about $15.4 billion.</li>
+<li>Chinese series: General Administration of Customs of China (GACC), monthly bulletin table "Imports and Exports by Country (Region) of Origin/Destination", December issue of each year, converted from US$ thousand to US$ billion.</li>
+<li>Product groups: Kazakhstan's figures reported to UN Comtrade, 2024.</li>
+<li>The two national series are shown side by side and never combined. Changes and shares are calculated by the author.</li>
 </ul>'''
 TRADE["notes"] = trade_notes
+TRADE["corrections"] = [("23 October 2026",
+    "China's exports to Kazakhstan in 2022 were $16.4 billion, not $16.2 billion, and total trade in Chinese data was "
+    "$31.2 billion in 2022, $21.4 billion in 2020 and $25.3 billion in 2021. Figures are now taken directly from the "
+    "GACC monthly bulletin. The Kazakh series and the conclusions are unchanged.")]
 
-trade_sections = f'''<h2>Key findings</h2><ol>
-<li>Trade turnover grew from $15.4 billion in 2020 to $34.1 billion in 2025.</li>
+trade_sections = f'''<h2>2. Main results</h2><ol>
+<li>Trade turnover grew from $15.4 billion in 2020 to $34.1 billion in 2025, by 121%.</li>
 <li>China's share of Kazakhstan's foreign trade rose from 18.1% to 23.7%.</li>
 <li>Kazakhstan exports mainly ores, oil, copper and uranium, and imports machinery, electronics and vehicles.</li>
-<li>A surplus of $2.6 billion in 2020 turned into a deficit of $3.7 billion in 2025.</li></ol>
-{fig(1, "Kazakhstan's exports to and imports from China, $ billion",
+<li>The balance moved from a surplus of $2.6 billion in 2020 to a deficit of $3.7 billion in 2025.</li></ol>
+<h2>3. Trade by year</h2>
+{fig(1, "Kazakhstan's exports to and imports from China, $ billion (Kazakh data)",
      columns([("Exports to China", GREY, EXPORTS), ("Imports from China", ACCENT, IMPORTS)], YEARS, w=560, h=260, top=22,
              desc="Exports grew from 9.0 to 15.2 billion dollars; imports from 6.4 to 18.9 billion"),
-     "Kazakh official statistics, see sources 1-6", TRADE["data"])}
-<p>Imports from China nearly tripled, from $6.4 billion to $18.9 billion, while exports rose by about two thirds. The balance changed sign in 2023, and in 2025 the deficit reached $3.7 billion as imports grew by 24% and exports by only 2%.</p>
+     "Kazakh official statistics, sources 1-6", TRADE["data"])}
 <div class="table-title">Table 1. Kazakhstan's goods trade with China, $ billion (Kazakh data)</div>
 {table(["", *YEARS],
        [["Exports to China", *EXPORTS], ["Imports from China", *IMPORTS], ["**Total trade", *TURNOVER],
         ["Balance", *[f"{v:+.1f}".replace("-", "−") for v in BALANCE]]])}
 <p class="table-note">Sources: {src_link(0, SRC_TRADE)}; {src_link(1, SRC_TRADE)}; {src_link(2, SRC_TRADE)}; {src_link(3, SRC_TRADE)}; {src_link(4, SRC_TRADE)}; {src_link(5, SRC_TRADE)}.</p>
+<p>Imports from China nearly tripled, from $6.4 billion to $18.9 billion. Exports rose by about two thirds, from $9.0 billion to $15.2 billion. The balance changed sign in 2023. In 2025 imports grew by 24% and exports by 2%.</p>
+<h2>4. Structure of trade</h2>
 <figure class="figure"><div class="fig-title">Figure 2. Top five product groups in Kazakhstan's trade with China, 2024, $ billion</div>
 <div class="hbars-grid"><div><div class="hbars-head">Exports to China</div>{hbars(TOP_EXPORTS)}</div>
 <div><div class="hbars-head">Imports from China</div>{hbars(TOP_IMPORTS, colour=ACCENT)}</div></div>
 <figcaption>Source: {src_link(7, SRC_TRADE)} (Kazakhstan's data reported to UN Comtrade). <a href="../{TRADE["data"]}.xlsx" download>Download the data (XLSX)</a></figcaption></figure>
-<p>All five main exports are raw materials or products of primary processing, so their value depends on world commodity prices. The main imports are finished goods.</p>
-<h2>A note on the statistics</h2>
-<p>The two countries record the same trade very differently. China reports $48.7 billion of trade with Kazakhstan in 2025, against $34.1 billion in Kazakhstan's own data. Most of the gap is on the Chinese export side.</p>
+<p>All five main exports are raw materials or products of primary processing, and their value depends on world commodity prices. All five main imports are finished or semi-finished goods.</p>
+<h2>5. Kazakh and Chinese statistics</h2>
+<p>The two countries record the same trade differently. In 2025 China reports $48.7 billion of trade with Kazakhstan, and Kazakhstan reports $34.1 billion. Most of the difference is in goods leaving China: $29.7 billion in Chinese data against $18.9 billion arriving in Kazakh data.</p>
 <div class="table-title">Table 2. The same trade in two sets of statistics, $ billion</div>
 {table(["", *YEARS],
-       [["Total trade, Kazakh data", *TURNOVER], ["Total trade, Chinese data", *CN_TURNOVER],
-        ["Goods from China: Chinese data", *[f"{v:.1f}" for v in CN_EXPORTS_TO_KZ]], ["Goods from China: Kazakh data", *IMPORTS]])}
-<p class="table-note">Sources: {src_link(0, SRC_TRADE)}; {src_link(6, SRC_TRADE)}. Such "mirror statistics" gaps usually come from goods passing through third countries, different valuation methods and under-declared imports.</p>
-<h2>My view</h2><blockquote class="view">{open(os.path.join(HERE, "view2.txt")).read().strip()}</blockquote>'''
+       [["Total trade, Kazakh data", *TURNOVER], ["Total trade, Chinese data", *[f"{v:.1f}" for v in CN_TURNOVER]],
+        ["Goods from China, Chinese data", *[f"{v:.1f}" for v in CN_EXPORTS_TO_KZ]], ["Goods from China, Kazakh data", *IMPORTS]])}
+<p class="table-note">Sources: Kazakh data, sources 1-6; Chinese data, {src_link(8, SRC_TRADE)}. Differences of this kind usually come from goods passing through third countries, different valuation methods and under-declared imports.</p>
+<h2>6. Author's comment</h2><blockquote class="view">{open(os.path.join(HERE, "view2.txt")).read().strip()}</blockquote>'''
+
 
 report(KASPI, kaspi_sections,
        [("Revenue growth, 2025", "+60%"), ("Net income growth, 2025", "+1%"), ("Net margin, 2024", "41.7%"),
         ("Net margin, 2025", "26.4%"), ("Stake in Hepsiburada", "85%")], SRC_KASPI, disclaimer=True)
 report(TRADE, trade_sections,
-       [("Turnover, 2025", "$34.1 bn"), ("Exports, 2025", "$15.2 bn"), ("Imports, 2025", "$18.9 bn"),
-        ("Balance, 2025", "−$3.7 bn"), ("China's share of KZ trade", "23.7%")], SRC_TRADE)
+       (["Indicator, $ billion", "2024", "2025", "Change"],
+        [["Total trade, Kazakh data", "30.1", "34.1", "+13.3%"], ["Exports to China", "14.9", "15.2", "+2.0%"],
+         ["Imports from China", "15.2", "18.9", "+24.3%"], ["Balance", "−0.3", "−3.7", ""],
+         ["Total trade, Chinese data", f"{CN_TURNOVER[4]:.1f}", f"{CN_TURNOVER[5]:.1f}", f"+{(CN_TURNOVER[5] / CN_TURNOVER[4] - 1) * 100:.1f}%"]]),
+       SRC_TRADE,
+       meta=[("Subject", "Goods trade between Kazakhstan and China"), ("Period", "2020-2025, calendar years"),
+             ("Unit", "US$ billion, current prices"),
+             ("Data", "Bureau of National Statistics of Kazakhstan; General Administration of Customs of China"),
+             ("Published", "8 October 2026; revised 23 October 2026"), ("Format", "Trade brief")])
 
 
 # ---------- New reports, October 2026 ----------
@@ -496,6 +530,7 @@ SRC_HALYK = [
 
 HALYK = dict(
     slug="halyk-bank-2026",
+    sector="Banks & fintech",
     url="research/halyk-bank-2026.html",
     tag="Companies",
     kind="Company note",
@@ -698,6 +733,7 @@ SRC_KAP = [
 
 KAP = dict(
     slug="kazatomprom-2025",
+    sector="Mining & energy",
     url="research/kazatomprom-2025.html",
     tag="Companies",
     kind="Company note",
@@ -809,6 +845,143 @@ kap_sections = f'''<h2>Key findings</h2><ol>
 report(KAP, kap_sections,
        [("Production, 2025", "25,839 tU"), ("Production growth", "+11%"), ("Revenue, 2025", "₸1.80 trn"),
         ("Cash cost per lb, 1H 2026", "+37%"), ("Profit to shareholders, 1H 2026", "−23%")], SRC_KAP, disclaimer=True)
+# China and Russia: GACC monthly bulletin, December issue of each year (US$ thousand -> $ billion)
+RU_RAW = [(107765163, 50584583, 57180581), (146887244, 67565332, 79321912), (190271620, 76122649, 114148971),
+          (240111548, 110972451, 129139097), (244819535, 115499179, 129320356), (228104895, 103309028, 124795867)]
+RU_TOTAL = [round(a / 1e6, 1) for a, _, _ in RU_RAW]
+RU_EXP = [round(b / 1e6, 1) for _, b, _ in RU_RAW]      # China's exports to Russia
+RU_IMP = [round(c / 1e6, 1) for _, _, c in RU_RAW]      # China's imports from Russia
+RU_BAL = [round((b - c) / 1e6, 1) for _, b, c in RU_RAW]
+# Table (15)/(16), HS chapters, 2025, $ billion
+RU_TOP_EXP = [("Machinery (HS 84)", 26.55), ("Electrical equipment (HS 85)", 14.76), ("Vehicles (HS 87)", 13.10),
+              ("Plastics (HS 39)", 4.15), ("Optical and medical instruments (HS 90)", 3.45)]
+RU_TOP_IMP = [("Oil, gas and coal (HS 27)", 78.73), ("Ores (HS 26)", 8.45), ("Aluminium (HS 76)", 5.90),
+              ("Copper (HS 74)", 4.88), ("Precious metals and stones (HS 71)", 4.66)]
+RU_CHANGE = [  # HS chapter, 2021, 2024, 2025
+    ("Exports to Russia: vehicles (HS 87)", 4.28, 25.48, 13.10),
+    ("Exports to Russia: machinery (HS 84)", 14.71, 27.31, 26.55),
+    ("Imports from Russia: oil, gas and coal (HS 27)", 53.54, 95.00, 78.73),
+    ("Imports from Russia: ores (HS 26)", None, 5.51, 8.45),
+    ("Imports from Russia: aluminium (HS 76)", None, 3.58, 5.90),
+    ("Imports from Russia: copper (HS 74)", None, 3.01, 4.88),
+]
+
+SRC_RU = [
+    ("General Administration of Customs of China, Monthly Bulletin, table (2) Imports and Exports by Country (Region) of Origin/Destination, December 2025",
+     "http://english.customs.gov.cn/Statics/ef1a478f-8a43-4b51-9690-fb975762a2c2.html", "GACC, table (2), 2025"),
+    ("General Administration of Customs of China, Monthly Bulletin, table (2), December 2024",
+     "http://english.customs.gov.cn/Statics/a5b4fa86-46e4-4195-a0c0-5c45ade1cb38.html", "table (2), 2024"),
+    ("General Administration of Customs of China, Monthly Bulletin, table (15) Exports by Selected Countries (Regions) and by HS Divisions, December 2025",
+     "http://english.customs.gov.cn/Statics/bdb2986b-8011-4df6-b54e-fdc487c23000.html", "GACC, table (15), 2025"),
+    ("General Administration of Customs of China, Monthly Bulletin, table (16) Imports by Selected Countries (Regions) and by HS Divisions, December 2025",
+     "http://english.customs.gov.cn/Statics/67b0f2b4-20f2-405b-bd3c-d82f58ca29f6.html", "GACC, table (16), 2025"),
+    ("General Administration of Customs of China, Monthly Bulletin, tables (15) and (16), December 2024",
+     "http://english.customs.gov.cn/Statics/7e3d455f-0c02-4821-bf96-d556fde0071e.html", "tables (15) and (16), 2024"),
+    ("General Administration of Customs of China, Monthly Bulletin, archive of tables for 2020-2025",
+     "http://english.customs.gov.cn/statics/report/monthly2025.html", "GACC archive"),
+    ("Free Policy Briefs (FREE Network), Russia's Data Warfare (April 2023)",
+     "https://freepolicybriefs.org/2023/04/18/russia-data-warfare/", "Free Policy Briefs"),
+]
+
+RU = dict(
+    slug="china-russia-trade-2025",
+    url="research/china-russia-trade-2025.html",
+    tag="Trade",
+    kind="Trade brief",
+    title="Fewer Cars, Cheaper Oil: China's Trade with Russia, 2020-2025",
+    date="23 Oct 2026", date_long="23 October 2026", iso="2026-10-23",
+    line="Trade fell 6.9% in 2025, to $228.1 billion. China's car exports to Russia almost halved.",
+    summary=("According to the General Administration of Customs of China, trade between China and Russia fell 6.9% in 2025, "
+             "to $228.1 billion. It was the first fall since 2020. China's exports to Russia fell 10.4%, to $103.3 billion, "
+             "and its imports from Russia fell 3.9%, to $124.8 billion. Vehicles explain almost all of the fall in exports: "
+             "they dropped from $25.5 billion to $13.1 billion. On the import side, oil, gas and coal fell by $16.3 billion, "
+             "while metals and ores rose. Russia has not published its own trade by country since 2022."),
+    art=columns([("Total trade", GREY, RU_TOTAL)], YEARS, w=300, h=150, hi=5, top=270, fmt="{:.0f}",
+                desc="China-Russia trade, $ billion, 2020 to 2025: 108, 147, 190, 240, 245, 228"),
+    art_title="Trade, $ bn (Chinese data)",
+    pdf="reports/china-russia-trade-2025.pdf", pages=2,
+    data="data/china-russia-trade-2020-2025",
+    og_num="−6.9%", og_cap="China-Russia trade in 2025, the first fall since 2020",
+    og_chart=columns([("Total trade", GREY, RU_TOTAL)], YEARS, w=420, h=260, hi=5, top=270, fmt="{:.0f}"),
+)
+RU["feat"] = (YEARS, "China's trade with Russia, $ billion (Chinese customs data)",
+              columns([("Exports to Russia", GREY, RU_EXP), ("Imports from Russia", ACCENT, RU_IMP)], YEARS, w=520, h=270, top=140,
+                      fmt="{:.0f}", desc="China's exports to and imports from Russia, 2020 to 2025"),
+              "General Administration of Customs of China")
+
+data_files(RU["data"], "China's goods trade with Russia, 2020-2025 ($ billion, Chinese customs data)",
+           ["Source: General Administration of Customs of China (GACC), Monthly Bulletin, tables (2), (15) and (16), December issue of each year.",
+            "Values converted by the author from US$ thousand to US$ billion. Balance = China's exports minus China's imports.",
+            "Growth rates in the text are those reported by GACC, which compares with revised figures for the previous year; growth by product is calculated by the author.",
+            "Russia's customs service has not published trade by partner country since 2022, so no Russian series is given."],
+           [("Annual", ["Indicator", *YEARS],
+             [["Total trade", *RU_TOTAL], ["China's exports to Russia", *RU_EXP], ["China's imports from Russia", *RU_IMP],
+              ["Balance (China's exports minus imports)", *RU_BAL]]),
+            ("Top products 2025", ["Flow", "Product group (HS chapter)", "$ billion"],
+             [["China's export to Russia", a, b] for a, b in RU_TOP_EXP] + [["China's import from Russia", a, b] for a, b in RU_TOP_IMP]),
+            ("Changes by product", ["Product group", "2021", "2024", "2025"],
+             [[n, "" if a is None else a, b, c] for n, a, b, c in RU_CHANGE])])
+
+RU["notes"] = '''<ul class="notes">
+<li>All figures are China's customs data (General Administration of Customs of China, GACC), Monthly Bulletin, December issue of each year: table (2) for totals, tables (15) and (16) for product groups by HS chapter.</li>
+<li>Values are converted from US$ thousand to US$ billion. Growth rates for totals are those published by GACC, which compares with revised data for the previous year, so they can differ slightly from a calculation on the figures shown. Growth by product and the comparison with Kazakhstan are calculated by the author.</li>
+<li>Russia's Federal Customs Service stopped publishing trade by partner country in 2022, so this brief uses one source only. Chinese data record goods by country of origin and destination and may differ from what Russia would report.</li>
+</ul>'''
+
+_ru_view = os.path.join(HERE, "view_china_russia.txt")
+_ru_view = open(_ru_view).read().strip() if os.path.exists(_ru_view) else ""
+ru_sections = f'''<h2>2. Main results</h2><ol>
+<li>Trade fell 6.9% in 2025, to $228.1 billion, after a record $244.8 billion in 2024.</li>
+<li>China's exports of vehicles to Russia fell from $25.5 billion to $13.1 billion, a drop almost as large as the fall in all its exports to Russia.</li>
+<li>China's imports of oil, gas and coal from Russia fell 17%, to $78.7 billion. They still made up 63% of everything China bought from Russia.</li>
+<li>China's trade with Kazakhstan grew 11% in the same year, to $48.7 billion.</li></ol>
+<h2>3. Trade by year</h2>
+{fig(1, "China's exports to and imports from Russia, $ billion",
+     columns([("China's exports to Russia", GREY, RU_EXP), ("China's imports from Russia", ACCENT, RU_IMP)], YEARS, w=560, h=270, top=140,
+             fmt="{:.0f}", desc="Exports grew from 51 to 115 billion dollars in 2024 and fell to 103 in 2025; imports grew from 57 to 129 and fell to 125"),
+     src_link(5, SRC_RU), RU["data"])}
+<div class="table-title">Table 1. China's goods trade with Russia, $ billion</div>
+{table(["", *YEARS],
+       [["China's exports to Russia", *[f"{v:.1f}" for v in RU_EXP]], ["China's imports from Russia", *[f"{v:.1f}" for v in RU_IMP]],
+        ["**Total trade", *[f"{v:.1f}" for v in RU_TOTAL]], ["Balance", *[f"{v:+.1f}".replace("-", "−") for v in RU_BAL]]])}
+<p class="table-note">Balance is China's exports minus China's imports; a negative figure means Russia sold China more than it bought. Sources: {src_link(0, SRC_RU)}; {src_link(1, SRC_RU)}; {src_link(5, SRC_RU)}.</p>
+<p>Trade more than doubled between 2020 and 2024, from $107.8 billion to $244.8 billion, and most of the growth came in 2022 and 2023. China buys more from Russia than it sells: the gap was $21.5 billion in 2025. In 2025 Russia accounted for 3.6% of China's foreign trade.</p>
+<h2>4. Structure of trade, 2025</h2>
+<figure class="figure"><div class="fig-title">Figure 2. Top five product groups in China's trade with Russia, 2025, $ billion</div>
+<div class="hbars-grid"><div><div class="hbars-head">China's exports to Russia</div>{hbars(RU_TOP_EXP)}</div>
+<div><div class="hbars-head">China's imports from Russia</div>{hbars(RU_TOP_IMP, colour=ACCENT)}</div></div>
+<figcaption>Source: {src_link(2, SRC_RU)}; {src_link(3, SRC_RU)}. <a href="../{RU["data"]}.xlsx" download>Download the data (XLSX)</a></figcaption></figure>
+<p>China sells Russia mainly machinery, electrical equipment and vehicles, which together made up 53% of its exports to Russia in 2025. It buys mainly fuel: oil, gas and coal were 63% of its imports from Russia. The pattern is the same as in Kazakhstan's trade with China, on a larger scale.</p>
+<h2>5. What changed in 2025</h2>
+<div class="table-title">Table 2. Selected product groups, $ billion</div>
+{table(["", "2021", "2024", "2025", "Change, 2025"],
+       [[n, "" if a is None else f"{a:.2f}", f"{b:.2f}", f"{c:.2f}", f"{(c / b - 1) * 100:+.0f}%".replace("-", "−")] for n, a, b, c in RU_CHANGE])}
+<p class="table-note">HS chapters from GACC tables (15) and (16). Sources: {src_link(2, SRC_RU)}; {src_link(3, SRC_RU)}; {src_link(4, SRC_RU)}. 2021 shown for vehicles, machinery and fuel only.</p>
+<p>China's vehicle exports to Russia grew six times between 2021 and 2024, from $4.3 billion to $25.5 billion, and then fell by almost half in 2025. The fall of $12.4 billion is about the same as the fall in all China's exports to Russia, $12.2 billion. Machinery, the largest export group, was almost unchanged.</p>
+<p>On the import side, the value of oil, gas and coal fell by $16.3 billion. Imports of ores, aluminium and copper rose by more than 50% each, which kept the overall fall in imports to 3.9%.</p>
+<h2>6. Comparison with Kazakhstan</h2>
+<div class="table-title">Table 3. China's trade with Russia and Kazakhstan, $ billion (Chinese data)</div>
+{table(["", "2020", "2024", "2025", "Change, 2025", "Change since 2020"],
+       [["Russia", f"{RU_TOTAL[0]:.1f}", f"{RU_TOTAL[4]:.1f}", f"{RU_TOTAL[5]:.1f}", "−6.9%", f"+{(RU_TOTAL[5] / RU_TOTAL[0] - 1) * 100:.0f}%"],
+        ["Kazakhstan", f"{CN_TURNOVER[0]:.1f}", f"{CN_TURNOVER[4]:.1f}", f"{CN_TURNOVER[5]:.1f}", "+11.0%", f"+{(CN_TURNOVER[5] / CN_TURNOVER[0] - 1) * 100:.0f}%"]])}
+<p class="table-note">Change in 2025 as published by GACC. Source: {src_link(0, SRC_RU)}.</p>
+<p>China's trade with Kazakhstan is about a fifth of its trade with Russia, but it has grown faster since 2020 and kept growing in 2025. For both neighbours China sells manufactured goods and buys raw materials.</p>
+<h2>7. A note on the data</h2>
+<p>This brief uses one set of statistics. Russia's Federal Customs Service stopped publishing trade by partner country in 2022 ({src_link(6, SRC_RU)}), so Chinese figures cannot be checked against Russian ones, as they were for Kazakhstan in an earlier brief. Chinese data show where goods were declared to go, not where they were finally used.</p>
+{f'<h2>8. Author{chr(39)}s comment</h2><blockquote class="view">{_ru_view}</blockquote>' if _ru_view else ""}'''
+
+report(RU, ru_sections,
+       (["Indicator, $ billion", "2024", "2025", "Change"],
+        [["Total trade", f"{RU_TOTAL[4]:.1f}", f"{RU_TOTAL[5]:.1f}", "−6.9%"],
+         ["China's exports to Russia", f"{RU_EXP[4]:.1f}", f"{RU_EXP[5]:.1f}", "−10.4%"],
+         ["China's imports from Russia", f"{RU_IMP[4]:.1f}", f"{RU_IMP[5]:.1f}", "−3.9%"],
+         ["Balance", f"{RU_BAL[4]:+.1f}".replace("-", "−"), f"{RU_BAL[5]:+.1f}".replace("-", "−"), ""],
+         ["Vehicles exported to Russia", "25.5", "13.1", "−49%"]]),
+       SRC_RU,
+       meta=[("Subject", "Goods trade between China and Russia"), ("Period", "2020-2025, calendar years"),
+             ("Unit", "US$ billion, current prices"), ("Data", "General Administration of Customs of China"),
+             ("Published", "23 October 2026"), ("Format", "Trade brief")])
+
 report(HALYK, halyk_sections,
        [("Net income, 2025", "₸1.06 trn"), ("Return on equity, 2025", "32.6%"), ("Net income, 1H 2026", "−15.3%"),
         ("Interest margin, 1H 2026", "6.8%"), ("Cost of risk, 1H 2026", "1.4%")], SRC_HALYK, disclaimer=True)
@@ -819,7 +992,7 @@ report(CA, ca_sections,
 TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
                  columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22,
                          desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
-REPORTS = [KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
+REPORTS = [RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
 
 
 # ---------- Home ----------
@@ -858,14 +1031,14 @@ def card(c):
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank and Kazatomprom, Kazakhstan's trade with China, and China's trade with the five Central Asian states. Every source is cited, and the underlying data is available to download.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank and Kazatomprom, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
 <div class="block-head"><h2>Latest</h2></div>
 <div class="featured">
 <div class="featured-text">
-<div class="label">{F["kind"]} &middot; <time datetime="{F["iso"]}">{F["date"]}</time></div>
+<div class="label">{kind_label(F)} &middot; <time datetime="{F["iso"]}">{F["date"]}</time></div>
 <h2><a href="{F["url"]}">{F["title"]}</a></h2>
 <p class="dek">{F["line"]}</p>
 <p>{F["summary"]}</p>
@@ -891,6 +1064,7 @@ home = f'''<section class="masthead"><div class="wrap">
 <div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
 <p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
+    dict(name="China-Russia goods trade", cover="2020-2025 · Chinese customs data · top products", base=RU["data"]),
     dict(name="Kazatomprom key figures", cover="2023-1H2026 · production, price, cost, profit, sales by region", base=KAP["data"]),
     dict(name="China-Central Asia goods trade", cover="2025 · five countries · Chinese and national data", base=CA["data"]),
     dict(name="Halyk Bank key figures", cover="2023-1H2026 · net income, margin, return on equity", base=HALYK["data"]),
@@ -921,6 +1095,9 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
+    dict(name="China-Russia goods trade", cover="2020-2025", unit="$ billion",
+         what="China's exports to and imports from Russia, total and balance; top product groups in 2025; vehicles, machinery, fuel and metals in 2021, 2024 and 2025.",
+         src="General Administration of Customs of China", base=RU["data"], r=RU),
     dict(name="Kazatomprom key figures", cover="2023-1H2026", unit="tU, $/lb, ₸ billion, %",
          what="Production, sales, realized and spot price, C1 cash cost, revenue, EBITDA, profit to shareholders; first half of 2025 and 2026; sales by region.",
          src="Kazatomprom operating and financial reviews", base=KAP["data"], r=KAP),
@@ -1166,7 +1343,30 @@ kap_pdf = pdf_doc(KAP, KAP["summary"], f'''
 <p>Profit depends on the uranium price. The new extraction tax rises with output and price, so it takes a larger share in a strong market. Acid shortages could limit production until the new plant starts, and a stronger tenge lowers revenue in tenge while raising costs in dollars. This note is not investment advice.</p>''',
     "view_kazatomprom.txt", SRC_KAP)
 
-for slug, html_doc in (("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
+ru_pdf = pdf_doc(RU, RU["summary"], f'''
+<h2>1. Data</h2><p>All figures are China's customs statistics (General Administration of Customs of China, GACC), Monthly Bulletin, December issue of each year: table (2) for totals and tables (15) and (16) for product groups by HS chapter [1-6]. Values are converted from US$ thousand to US$ billion. Growth rates for totals are those published by GACC. Russia's customs service stopped publishing trade by partner country in 2022 [7], so no Russian series is available for comparison.</p>
+<h2>2. Trade by year</h2>
+<div class="keep"><div class="cap"><b>Table 1.</b> China's goods trade with Russia, $ billion</div>
+{ptable(["", *YEARS],
+        [["China's exports to Russia", *[f"{v:.1f}" for v in RU_EXP]], ["China's imports from Russia", *[f"{v:.1f}" for v in RU_IMP]],
+         ["Total trade", *[f"{v:.1f}" for v in RU_TOTAL]], ["Balance", *[f"{v:+.1f}" for v in RU_BAL]]],
+        "Balance is China's exports minus imports. Sources: [1], [2], [6].")}</div>
+<p>Trade grew from $107.8 billion in 2020 to a record $244.8 billion in 2024 and fell 6.9% in 2025, to $228.1 billion. China's exports to Russia fell 10.4% and its imports from Russia 3.9%. Russia accounted for 3.6% of China's foreign trade in 2025.</p>
+{pfig(1, "China's exports to and imports from Russia, $ billion",
+      columns([("Exports", D1, RU_EXP), ("Imports", L1, RU_IMP)], YEARS, w=440, h=200, top=140, fmt="{:.0f}"),
+      "Dark: China's exports to Russia; light: China's imports from Russia. Sources: [1], [6].")}
+<h2>3. Structure and change by product</h2>
+<p>In 2025 machinery, electrical equipment and vehicles made up 53% of China's exports to Russia, and oil, gas and coal made up 63% of its imports from Russia [3, 4].</p>
+<div class="keep"><div class="cap"><b>Table 2.</b> Selected product groups, $ billion</div>
+{ptable(["", "2021", "2024", "2025"],
+        [[n, "" if a is None else f"{a:.2f}", f"{b:.2f}", f"{c:.2f}"] for n, a, b, c in RU_CHANGE],
+        "HS chapters. Sources: [3], [4], [5].")}</div>
+<p>China's vehicle exports to Russia grew from $4.3 billion in 2021 to $25.5 billion in 2024 and fell to $13.1 billion in 2025. The fall of $12.4 billion is about equal to the fall in all China's exports to Russia ($12.2 billion). The value of oil, gas and coal imports fell by $16.3 billion, while imports of ores, aluminium and copper each rose by more than 50%.</p>
+<h2>4. Comparison with Kazakhstan</h2>
+<p>In the same year China's trade with Kazakhstan grew 11.0%, to $48.7 billion [1]. It is about a fifth of China's trade with Russia but has grown faster since 2020 (127% against 112%). In both cases China sells manufactured goods and buys raw materials.</p>''',
+    "view_china_russia.txt", SRC_RU)
+
+for slug, html_doc in (("china-russia-trade-2025", ru_pdf), ("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
     os.makedirs(os.path.join(HERE, "pdf"), exist_ok=True)
     with open(os.path.join(HERE, "pdf", slug + ".html"), "w") as f:
         f.write(html_doc)

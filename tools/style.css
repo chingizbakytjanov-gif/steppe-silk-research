@@ -209,3 +209,11 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 
 /* Line length: body text stays near 65-75 characters per line; figures and tables keep the full 700px. */
 .report-body > p, .report-body > ol, .report-body > ul, .report-body > blockquote, .prose > p, .prose > ul { max-width: 620px; }
+
+/* Trade briefs: statistical bulletin header */
+.meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin: 0; padding: 14px 0 4px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); font-size: 14px; }
+.meta div { display: grid; grid-template-columns: 112px 1fr; gap: 12px; padding: 6px 0; }
+.meta dt { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding-top: 2px; }
+.meta dd { margin: 0; color: var(--ink); }
+@media (max-width: 760px) { .meta { grid-template-columns: 1fr; } }
+.bulletin-head { max-width: 820px; }
