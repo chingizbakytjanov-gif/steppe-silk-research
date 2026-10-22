@@ -982,6 +982,128 @@ report(RU, ru_sections,
              ("Unit", "US$ billion, current prices"), ("Data", "General Administration of Customs of China"),
              ("Published", "23 October 2026"), ("Format", "Trade brief")])
 
+# Geely Automobile Holdings (HKEX: 175): annual reports 2025, interim report 2026, monthly sales announcements
+G_YEARS = ["2023", "2024", "2025"]
+G_REV = [224.8, 275.9, 345.2]           # revenue, RMB billion (2023-2024 as restated in the 2025 report)
+G_NP = [5.49, 16.81, 16.85]             # profit attributable to owners of the parent, RMB billion
+G_CORE = [None, 10.61, 14.41]           # core profit attributable to owners, RMB billion (company measure)
+G_UNITS = [1686516, 2176567, 3024567]   # total sales volume, units
+G_H1 = dict(rev=(151.4, 173.6), np=(9.26, 9.09), core=(6.62, 9.68), units=(None, 1422958), gm=(16.3, 17.9),
+            zeekr=(None, 178370), exports=(None, 474228))
+G_9M = [  # brand, Jan-Sep 2025, Jan-Sep 2026 (units, unaudited)
+    ("Geely brand", 1785117, 1750960), ("of which Galaxy", 874985, 877184), ("Lynk & Co", 241472, 196117),
+    ("Zeekr", 143600, 288404), ("**Total", 2170189, 2235481), ("Exports (included above)", 296128, 797670)]
+
+SRC_GEELY = [
+    ("Geely Automobile Holdings, Annual Report 2025 (April 2026)",
+     "https://www.geelyauto.com.hk/wp-content/uploads/2026/04/e00175_2025-annual-report.pdf", "Geely, Annual Report 2025"),
+    ("Geely Automobile Holdings, Interim Report 2026 (August 2026)",
+     "https://www.geelyauto.com.hk/wp-content/uploads/2026/08/e00175_2026-interim-report.pdf", "Interim Report 2026"),
+    ("Geely Automobile Holdings, press release on the 2025 annual results (18 March 2026)",
+     "https://www.geelyauto.com.hk/wp-content/uploads/2026/03/e_20260318_Press-Release_Geely_2025-Annual-Results.pdf", "2025 results release"),
+    ("Geely Automobile Holdings, Unaudited sales volume in September 2026 (1 October 2026)",
+     "https://www.geelyauto.com.hk/wp-content/uploads/2026/10/20261001-Geely-Sep-2026-Sales-Announcement_ENG.pdf", "September 2026 sales"),
+]
+
+GEELY = dict(
+    slug="geely-2026",
+    url="research/geely-2026.html",
+    sector="Manufacturing",
+    tag="Companies",
+    kind="Company note",
+    title="Selling Abroad and Selling Up: Geely Auto and Zeekr in 2025-2026",
+    date="23 Oct 2026", date_long="23 October 2026", iso="2026-10-23",
+    line="China's car market fell by a quarter in early 2026. Geely's exports grew 158% and Zeekr's sales almost doubled.",
+    summary=("Geely Automobile, the Hong Kong-listed carmaker that owns the Geely, Lynk & Co and Zeekr brands, sold 3.02 million "
+             "cars in 2025, 39% more than in 2024, and its revenue rose 25% to RMB345 billion. In December 2025 it bought out the "
+             "minority shareholders of Zeekr, its luxury electric brand, and took it off the New York Stock Exchange. In the "
+             "first half of 2026, when car sales inside China fell 24%, Geely kept its total sales flat by selling abroad: "
+             "exports grew 158% and Zeekr's sales 97%. Revenue rose 15% and core profit 46%, although reported profit fell 2%."),
+    art=columns([("Revenue", GREY, G_REV)], G_YEARS, w=300, h=150, hi=2, top=400, fmt="{:.0f}",
+                desc="Geely revenue, RMB billion: 225 in 2023, 276 in 2024, 345 in 2025"),
+    art_title="Revenue, RMB bn",
+    pdf="reports/geely-2026.pdf", pages=3,
+    data="data/geely-2023-2026",
+    og_num="+158%", og_cap="Geely's exports in 1H 2026, as car sales in China fell 24%",
+    og_chart=columns([("Revenue", GREY, G_REV)], G_YEARS, w=420, h=260, hi=2, top=400, fmt="{:.0f}"),
+)
+GEELY["feat"] = (G_YEARS, "Geely Automobile revenue, RMB billion",
+                 columns([("Revenue", GREY, G_REV)], G_YEARS, w=520, h=270, hi=2, top=400, fmt="{:.0f}",
+                         desc="Revenue 2023 to 2025"), "Geely Automobile annual report 2025")
+
+data_files(GEELY["data"], "Geely Automobile key figures, 2023 to September 2026",
+           ["Sources: Geely Automobile Holdings Annual Report 2025, Interim Report 2026 and monthly sales announcements.",
+            "Revenue for 2023 and 2024 is as restated in the 2025 annual report. Profit is attributable to owners of the parent.",
+            "Core profit is the company's own measure: profit attributable to owners without foreign exchange gains or losses, impairment of non-financial assets and gains on disposals.",
+            "Monthly sales figures are unaudited. Exports are sales outside mainland China, including Hong Kong, Macao and Taiwan."],
+           [("Annual", ["Indicator", *G_YEARS],
+             [["Revenue, RMB billion", *G_REV], ["Profit attributable to owners, RMB billion", *G_NP],
+              ["Core profit attributable to owners, RMB billion", *["" if v is None else v for v in G_CORE]],
+              ["Total sales volume, units", *G_UNITS]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Revenue, RMB billion", *G_H1["rev"]], ["Profit attributable to owners, RMB billion", *G_H1["np"]],
+              ["Core profit attributable to owners, RMB billion", *G_H1["core"]], ["Gross margin, %", *G_H1["gm"]],
+              ["Total sales volume, units", "", G_H1["units"][1]], ["Zeekr sales, units", "", G_H1["zeekr"][1]],
+              ["Export sales, units", "", G_H1["exports"][1]]]),
+            ("January-September", ["Brand", "Jan-Sep 2025", "Jan-Sep 2026"],
+             [[n.replace("**", ""), a, b] for n, a, b in G_9M])])
+
+GEELY["notes"] = '''<ul class="notes">
+<li>All figures come from Geely Automobile Holdings' own reports, listed under Sources. Money is in Chinese yuan (RMB). Revenue for 2023 and 2024 is as restated in the 2025 annual report.</li>
+<li>"Core profit" is the company's own measure. It removes foreign exchange gains and losses, impairment of non-financial assets and one-off gains on disposals. In 2024 reported profit included a gain of RMB9.35 billion on disposals.</li>
+<li>Sales volumes for January to September are unaudited monthly figures. Zeekr no longer publishes its own accounts after leaving the New York Stock Exchange, so its sales volume is the only Zeekr figure available.</li>
+<li>Percentage changes and the sales needed to meet the 2026 target are calculated by the author.</li>
+</ul>'''
+
+geely_sections = f'''<h2>Key findings</h2><ol>
+<li>Geely sold 3.02 million cars in 2025, up 39%, and revenue rose 25%, to RMB345 billion. Reported profit was flat at RMB16.9 billion, while core profit rose 36%.</li>
+<li>In December 2025 Geely bought the rest of Zeekr for about RMB5.3 billion in cash and 777 million new Geely shares.</li>
+<li>In the first half of 2026 exports grew 158% and Zeekr sales 97%, while car sales inside China fell 24%.</li>
+<li>After nine months of 2026 Geely had sold 2.24 million cars. To reach its target of 3.45 million it needs about 405,000 a month in the last quarter.</li></ol>
+{fig(1, "Revenue, RMB billion",
+     columns([("Revenue", GREY, G_REV)], G_YEARS, hi=2, top=400, fmt="{:.1f}",
+             desc="Revenue rose from 224.8 billion yuan in 2023 to 275.9 in 2024 and 345.2 in 2025"),
+     src_link(0, SRC_GEELY), GEELY["data"])}
+<h2>A record year with flat profit</h2>
+<p>Geely makes cars under three brands: Geely, whose electric and hybrid line is called Galaxy; Lynk &amp; Co in the middle of the market; and Zeekr at the top. In 2025 Galaxy sales rose 150%, to 1.24 million, and electric and plug-in hybrid cars made up 56% of all sales. Sales in China grew 48%, but exports grew only 1%, to 420,097 cars.</p>
+<p>Reported profit attributable to shareholders was almost unchanged, RMB16.85 billion against RMB16.81 billion. The 2024 figure was lifted by a one-off gain of RMB9.35 billion on disposals. Without such items, the company's core profit rose 36%, to RMB14.41 billion. The gross margin stayed close to 16.6%, which the company links to fierce price competition in China. The dividend rose from HK$0.33 to HK$0.50 a share.</p>
+{fig(2, "Reported and core profit attributable to shareholders, RMB billion",
+     columns([("Reported profit", GREY, [G_NP[1], G_NP[2], G_H1["np"][0], G_H1["np"][1]]),
+              ("Core profit", ACCENT, [G_CORE[1], G_CORE[2], G_H1["core"][0], G_H1["core"][1]])],
+             ["2024", "2025", "1H 2025", "1H 2026"], w=560, h=260, top=20, fmt="{:.1f}",
+             desc="Reported profit 16.8, 16.9, 9.3 and 9.1 billion yuan; core profit 10.6, 14.4, 6.6 and 9.7"),
+     src_link(0, SRC_GEELY) + "; " + src_link(1, SRC_GEELY), GEELY["data"])}
+<h2>Why Geely bought out Zeekr</h2>
+<p>Zeekr's shares traded in New York, while Geely kept a majority stake. In May 2025 Geely proposed to buy the remaining shares, and the deal closed on 22 December 2025. Zeekr shareholders could take US$2.687 in cash or 1.23 Geely shares for each Zeekr share. In the end Geely issued 777 million new shares and paid about RMB5.3 billion in cash, and Zeekr left the New York Stock Exchange.</p>
+<p>Geely explains the deal by its "One Geely" plan: to stop its brands competing for the same buyers and to stop paying twice for the same factories and research. Before the deal Zeekr had also taken over Lynk &amp; Co. One sign of the change is in the balance sheet: the equity held by outside shareholders in Geely's subsidiaries fell from RMB7.5 billion to RMB1.2 billion in 2025.</p>
+<p>Zeekr sold 224,133 cars in 2025, only 1% more than in 2024. In the first half of 2026 its sales rose 97%, to 178,370, helped by the Zeekr 9X, a large SUV priced above RMB500,000 that sold more than 46,000 units. Lynk &amp; Co went the other way: its sales fell 19% in the first nine months of 2026.</p>
+<div class="table-title">Table 1. Sales by brand, January to September, units</div>
+{table(["", "Jan-Sep 2025", "Jan-Sep 2026", "Change"],
+       [[n, n0(a), n0(b), f"{(b / a - 1) * 100:+.0f}%".replace("-", "−")] for n, a, b in G_9M])}
+<p class="table-note">Unaudited monthly figures. Source: {src_link(3, SRC_GEELY)}.</p>
+<h2>2026: a smaller home market, more exports</h2>
+<p>Sales of passenger cars inside China fell 24% in the first half of 2026, according to figures from the China Association of Automobile Manufacturers quoted in Geely's report. Geely's total sales still rose 1%, to 1.42 million, because exports grew 158%, to 474,228 cars. More than half of the exported cars were electric or plug-in hybrid.</p>
+<p>The mix also became more expensive. The average price of a Geely car rose by RMB15,000, to RMB112,000, so revenue grew 15%, to RMB173.6 billion, and the gross margin rose from 16.3% to 17.9%. Reported profit fell 2%, to RMB9.09 billion, because a foreign exchange gain of RMB2.64 billion in the first half of 2025 turned into a loss of RMB550 million. Core profit rose 46%, to RMB9.68 billion.</p>
+<div class="table-title">Table 2. Geely key figures</div>
+{table(["", *G_YEARS, "1H 2025", "1H 2026"],
+       [["**Revenue, RMB billion", *[f"{v:.1f}" for v in G_REV], *[f"{v:.1f}" for v in G_H1["rev"]]],
+        ["Reported profit, RMB billion", *[f"{v:.2f}" for v in G_NP], *[f"{v:.2f}" for v in G_H1["np"]]],
+        ["Core profit, RMB billion", "n/a", *[f"{v:.2f}" for v in G_CORE[1:]], *[f"{v:.2f}" for v in G_H1["core"]]],
+        ["Cars sold, thousand", *[f"{v / 1000:,.0f}" for v in G_UNITS], "n/a", f"{G_H1['units'][1] / 1000:,.0f}"]])}
+<p class="table-note">Profit is attributable to owners of the parent. Sources: {src_link(0, SRC_GEELY)}; {src_link(1, SRC_GEELY)}.</p>
+<h2>Geely in Kazakhstan</h2>
+<p>Kazakhstan appears twice in Geely's 2025 annual report. Geely makes cars with local partners at 12 plants outside China, and in 2025 the plant in Kazakhstan began producing both electric and petrol cars on two lines. Zeekr, which has 152 stores in about 50 countries outside mainland China, says it was among the top three luxury electric car brands in Kazakhstan. The report gives no sales figures for Kazakhstan itself.</p>
+<h2>Risks</h2><ol>
+<li>The 2026 target of 3.45 million cars needs about 1.21 million sales in October to December, around 405,000 a month. In September Geely sold 292,168.</li>
+<li>The car market in China is shrinking and price competition remains fierce, which limits margins.</li>
+<li>Growth now depends on exports, which face trade barriers and currency swings. A foreign exchange gain of RMB2.64 billion in the first half of 2025 became a loss of RMB550 million a year later.</li>
+<li>Lynk &amp; Co's sales are falling, so the "One Geely" plan still has to prove that the three brands can grow together.</li></ol>
+{view("view_geely.txt")}'''
+
+report(GEELY, geely_sections,
+       [("Revenue, 2025", "RMB345 bn"), ("Cars sold, 2025", "3.02 mn"), ("Exports, 1H 2026", "+158%"),
+        ("Zeekr sales, 1H 2026", "+97%"), ("Core profit, 1H 2026", "+46%")], SRC_GEELY, disclaimer=True)
+
 report(HALYK, halyk_sections,
        [("Net income, 2025", "₸1.06 trn"), ("Return on equity, 2025", "32.6%"), ("Net income, 1H 2026", "−15.3%"),
         ("Interest margin, 1H 2026", "6.8%"), ("Cost of risk, 1H 2026", "1.4%")], SRC_HALYK, disclaimer=True)
@@ -992,7 +1114,7 @@ report(CA, ca_sections,
 TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
                  columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22,
                          desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
-REPORTS = [RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
+REPORTS = [GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
 
 
 # ---------- Home ----------
@@ -1031,7 +1153,7 @@ def card(c):
 F = REPORTS[0]
 home = f'''<section class="masthead"><div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank and Kazatomprom, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank, Kazatomprom and Geely, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
 </div></section>
 
 <section class="block"><div class="wrap">
@@ -1064,6 +1186,7 @@ home = f'''<section class="masthead"><div class="wrap">
 <div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
 <p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
+    dict(name="Geely Automobile key figures", cover="2023-Sep 2026 · revenue, profit, sales by brand, exports", base=GEELY["data"]),
     dict(name="China-Russia goods trade", cover="2020-2025 · Chinese customs data · top products", base=RU["data"]),
     dict(name="Kazatomprom key figures", cover="2023-1H2026 · production, price, cost, profit, sales by region", base=KAP["data"]),
     dict(name="China-Central Asia goods trade", cover="2025 · five countries · Chinese and national data", base=CA["data"]),
@@ -1095,6 +1218,9 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
+    dict(name="Geely Automobile key figures", cover="2023-Sep 2026", unit="RMB billion, units, %",
+         what="Revenue, reported and core profit, sales volume; first half of 2025 and 2026; sales by brand (Geely, Galaxy, Lynk & Co, Zeekr) and exports, January to September.",
+         src="Geely Automobile Holdings reports and sales announcements", base=GEELY["data"], r=GEELY),
     dict(name="China-Russia goods trade", cover="2020-2025", unit="$ billion",
          what="China's exports to and imports from Russia, total and balance; top product groups in 2025; vehicles, machinery, fuel and metals in 2021, 2024 and 2025.",
          src="General Administration of Customs of China", base=RU["data"], r=RU),
@@ -1366,7 +1492,25 @@ ru_pdf = pdf_doc(RU, RU["summary"], f'''
 <p>In the same year China's trade with Kazakhstan grew 11.0%, to $48.7 billion [1]. It is about a fifth of China's trade with Russia but has grown faster since 2020 (127% against 112%). In both cases China sells manufactured goods and buys raw materials.</p>''',
     "view_china_russia.txt", SRC_RU)
 
-for slug, html_doc in (("china-russia-trade-2025", ru_pdf), ("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
+geely_pdf = pdf_doc(GEELY, GEELY["summary"], f'''
+<h2>1. Data</h2><p>All figures come from Geely Automobile Holdings' Annual Report 2025, Interim Report 2026 and monthly sales announcements [1-4]. Money is in Chinese yuan (RMB). Profit is attributable to owners of the parent. "Core profit" is the company's own measure without foreign exchange effects, impairments and one-off gains on disposals.</p>
+<h2>2. Results for 2023-2025</h2>
+<p>Revenue rose from RMB224.8 billion in 2023 to RMB345.2 billion in 2025, and sales from 1.69 million to 3.02 million cars [1]. In 2025 sales in China grew 48% and exports only 1%. Reported profit was flat at RMB16.85 billion because 2024 included a one-off gain of RMB9.35 billion; core profit rose 36%, to RMB14.41 billion. The gross margin was 16.6%.</p>
+{pfig(1, "Revenue, RMB billion", columns([("Revenue", D1, G_REV)], G_YEARS, w=440, h=180, top=400, fmt="{:.1f}"), "Source: [1].")}
+<h2>3. The privatisation of Zeekr</h2>
+<p>On 22 December 2025 Geely completed the purchase of all Zeekr shares it did not already own, paying about RMB5.3 billion in cash and issuing 777 million new shares; Zeekr left the New York Stock Exchange [1]. Geely presents the deal as part of its "One Geely" plan to remove duplicated investment between its brands. Zeekr sold 224,133 cars in 2025 (+1%) and 178,370 in the first half of 2026 (+97%) [1, 2].</p>
+<div class="keep"><div class="cap"><b>Table 1.</b> Sales by brand, January to September, units</div>
+{ptable(["", "Jan-Sep 2025", "Jan-Sep 2026", "Change"],
+        [[n.replace("**", ""), n0(a), n0(b), f"{(b / a - 1) * 100:+.0f}%"] for n, a, b in G_9M], "Unaudited. Source: [4].")}</div>
+<h2>4. The first half of 2026</h2>
+<p>Domestic passenger car sales in China fell 24%, but Geely's total sales rose 1% to 1.42 million because exports grew 158%, to 474,228 [2]. The average selling price rose by RMB15,000 to RMB112,000, revenue rose 15% to RMB173.6 billion and the gross margin rose from 16.3% to 17.9%. Reported profit fell 1.8%, to RMB9.09 billion, because of a swing from a foreign exchange gain to a loss; core profit rose 46%, to RMB9.68 billion [2].</p>
+<h2>5. Kazakhstan</h2>
+<p>In 2025 Geely's partner plant in Kazakhstan started producing both electric and petrol cars, and Zeekr reported being among the top three luxury electric brands in the country [1]. No sales figures for Kazakhstan are published.</p>
+<h2>6. Risks</h2>
+<p>To meet its 2026 target of 3.45 million cars, Geely must sell about 1.21 million in the fourth quarter, around 405,000 a month, against 292,168 in September [4]. The domestic market is shrinking, price competition remains strong, exports are exposed to trade barriers and currencies, and Lynk &amp; Co's sales fell 19% in the first nine months of 2026. This note is not investment advice.</p>''',
+    "view_geely.txt", SRC_GEELY)
+
+for slug, html_doc in (("geely-2026", geely_pdf), ("china-russia-trade-2025", ru_pdf), ("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
     os.makedirs(os.path.join(HERE, "pdf"), exist_ok=True)
     with open(os.path.join(HERE, "pdf", slug + ".html"), "w") as f:
         f.write(html_doc)
