@@ -1,12 +1,12 @@
 :root {
   --ink: #14202e;
   --soft: #4a5562;
-  --muted: #6f7884;
+  --muted: #5f6873;
   --line: #e3ddd2;
   --paper: #faf7f2;
   --tint: #f1ebe0;
   --accent: #0b6e79;
-  --accent2: #b5502b;
+  --accent2: #a84a27;
   --serif: "IBM Plex Serif", Georgia, serif;
   --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Arial, sans-serif;
   --mono: "IBM Plex Mono", Menlo, Consolas, monospace;
@@ -196,7 +196,7 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .card:hover { border-color: var(--ink); color: var(--ink); }
 .card-band { height: 92px; padding: 12px 16px; display: flex; flex-direction: column-reverse; justify-content: space-between; color: #fff; }
 .card-band b { font-family: var(--mono); font-size: 26px; font-weight: 500; letter-spacing: 1px; }
-.card-band span { font-family: var(--mono); font-size: 11px; letter-spacing: .5px; text-transform: uppercase; opacity: .9; }
+.card-band span { font-family: var(--mono); font-size: 11px; letter-spacing: .5px; text-transform: uppercase; }
 .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; flex: 1; }
 .card-body h3 { font-family: var(--serif); font-size: 21px; margin: 0 0 2px; }
 .card-body .muted { margin: 0 0 12px; font-size: 13px; }
@@ -206,3 +206,6 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .card-more { font-size: 13px; font-weight: 500; color: var(--accent); }
 @media (max-width: 960px) { .cards { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .cards { grid-template-columns: 1fr; } }
+
+/* Line length: body text stays near 65-75 characters per line; figures and tables keep the full 700px. */
+.report-body > p, .report-body > ol, .report-body > ul, .report-body > blockquote, .prose > p, .prose > ul { max-width: 620px; }

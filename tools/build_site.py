@@ -19,7 +19,7 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400'
          '&display=swap" rel="stylesheet">')
 
-INK, GREY, ACCENT, MUTED = "#14202e", "#cfc6b8", "#0b6e79", "#6f7884"
+INK, GREY, ACCENT, MUTED = "#14202e", "#cfc6b8", "#0b6e79", "#5f6873"
 CHART_FONT = "IBM Plex Sans,Arial"
 
 NAV = [("research.html", "Research"), ("data.html", "Data"), ("about.html", "About")]
@@ -184,7 +184,7 @@ def n0(v):
 # Sources: every name links to the page the number came from.
 SRC_KASPI = [
     ("Kaspi.kz JSC, Annual Report on Form 20-F for the fiscal year ended 31 December 2025 (U.S. SEC filing)",
-     "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=kaspi&type=20-F"),
+     "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001985487&type=20-F"),
     ("Kaspi.kz investor relations", "https://ir.kaspi.kz"),
 ]
 SRC_TRADE = [
@@ -689,7 +689,7 @@ COVERAGE = [
     dict(code="KSPI", tag="Company · Kazakhstan", name="Kaspi.kz", band="#d9352b",
          what="Payments, online shopping and loans in one app", r=KASPI,
          stats=[("Revenue, 2025", "₸4.05 trn"), ("Revenue growth", "+60%"), ("Net margin", "26.4%")]),
-    dict(code="HEPS", tag="Company · Turkey", name="Hepsiburada", band="#e8590c",
+    dict(code="HEPS", tag="Company · Turkey", name="Hepsiburada", band="#c2410c",
          what="E-commerce marketplace, controlled by Kaspi since 2025", r=KASPI,
          stats=[("Segment revenue, 2025", "₸1.03 trn"), ("Net loss, 2025", "₸93 bn"), ("Kaspi's stake, Jan 2026", "85%")]),
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
