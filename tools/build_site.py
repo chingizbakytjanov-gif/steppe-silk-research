@@ -241,6 +241,7 @@ KASPI = dict(
 )
 TRADE = dict(
     slug="kazakhstan-china-trade",
+    mark="KZ &middot; CN",
     url="research/kazakhstan-china-trade.html",
     tag="Trade",
     kind="Trade brief",
@@ -272,9 +273,17 @@ def kind_label(r):
     return r["kind"] + (f' &middot; {r["sector"]}' if r.get("sector") else "")
 
 
+def row_mark(r, pre=""):
+    """Left of each article in a list: the company's logo, or the countries a trade brief covers."""
+    if r.get("logos"):
+        l, n = r["logos"][0]
+        return f'<img class="row-logo" src="{pre}assets/logos/{l}.svg" alt="{escape(n)} logo">'
+    return f'<span class="row-mark">{r["mark"]}</span>' if r.get("mark") else ""
+
+
 def row(r, pre=""):
     return f'''<div class="row" data-type="{r["tag"].lower()}">
-<div class="row-date"><time datetime="{r["iso"]}">{r["date"]}</time></div>
+<div class="row-date">{row_mark(r, pre)}<time datetime="{r["iso"]}">{r["date"]}</time></div>
 <div class="row-main"><div class="label">{kind_label(r)}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
 <div class="row-actions"><a href="{pre}{r["url"]}">Read</a>{pdf_link(r, pre)}<a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
@@ -636,6 +645,7 @@ SRC_CA = [
 
 CA = dict(
     slug="china-central-asia-2025",
+    mark="CN &middot; CA",
     url="research/china-central-asia-2025.html",
     tag="Trade",
     kind="Trade brief",
@@ -889,6 +899,7 @@ SRC_RU = [
 
 RU = dict(
     slug="china-russia-trade-2025",
+    mark="CN &middot; RU",
     url="research/china-russia-trade-2025.html",
     tag="Trade",
     kind="Trade brief",

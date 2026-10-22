@@ -45,7 +45,7 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .page-head + .block .rows { border-top: 1px solid var(--ink); }
 
 /* Rows (research list) */
-.row { position: relative; display: grid; grid-template-columns: 90px 1fr 240px; gap: 28px; padding: 26px 0; border-bottom: 1px solid var(--line); text-decoration: none; align-items: start; }
+.row { position: relative; display: grid; grid-template-columns: 120px 1fr 240px; gap: 28px; padding: 26px 0; border-bottom: 1px solid var(--line); text-decoration: none; align-items: start; }
 .row:hover h3, .row:hover h3 a { color: var(--accent); }
 .row-link { text-decoration: none; }
 .row-link::after { content: ""; position: absolute; inset: 0; }
@@ -225,3 +225,9 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .report-head h1, .masthead h1, .page-head h1 { font-weight: 700; letter-spacing: -0.02em; }
 /* Company logos at the top of company notes */
 .report-logo { height: 34px; width: auto; margin: 0 18px 14px 0; vertical-align: middle; }
+
+/* Article lists: company logo or trade-brief countries above the date */
+.row-date time { display: block; }
+.row-logo { display: block; max-width: 110px; max-height: 36px; width: auto; height: auto; margin-bottom: 10px; }
+.row-mark { display: inline-block; font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--ink); border: 1px solid var(--ink); padding: 3px 7px; margin-bottom: 10px; letter-spacing: .5px; }
+@media (max-width: 760px) { .row-logo, .row-mark { margin-bottom: 6px; } .row-logo { max-height: 26px; } }
