@@ -19,7 +19,8 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400'
          '&display=swap" rel="stylesheet">')
 
-INK, GREY, ACCENT, MUTED = "#14202e", "#cfc6b8", "#0b6e79", "#5f6873"
+INK, GREY, ACCENT, MUTED = "#14202e", "#bfc3c9", "#0b6e79", "#5f6873"
+CHART_HI = "#1f2d3d"  # charts: neutral grey bars, dark slate for the highlight and the second series
 CHART_FONT = "IBM Plex Sans,Arial"
 
 NAV = [("research.html", "Research"), ("data.html", "Data"), ("about.html", "About")]
@@ -119,7 +120,7 @@ def columns(series, labels, w=480, h=250, fmt="{:.1f}", unit="", top=None, hi=No
             bh = (h - pad_b - pad_t) * v / top
             x = x0 + j * (bw + 2)
             y = h - pad_b - bh
-            c = ACCENT if (k == 1 and i == hi) else col
+            c = CHART_HI if (k == 1 and i == hi) else col
             out.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{bh:.1f}" fill="{c}"/>')
             fs = 14 if k == 1 else 12
             out.append(f'<text x="{x+bw/2:.1f}" y="{y-6:.1f}" text-anchor="middle" font-size="{fs}" '
@@ -241,6 +242,7 @@ KASPI = dict(
 )
 TRADE = dict(
     slug="kazakhstan-china-trade",
+    mark="KZ &middot; CN",
     url="research/kazakhstan-china-trade.html",
     tag="Trade",
     kind="Trade brief",
@@ -256,7 +258,7 @@ TRADE = dict(
     pdf="reports/kazakhstan-china-trade-2026.pdf", pages=3,
     data="data/kazakhstan-china-trade-2020-2025",
     og_num="−$3.7 bn", og_cap="Kazakhstan's trade balance with China in 2025",
-    og_chart=columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=420, h=260, top=22),
+    og_chart=columns([("Exports", GREY, EXPORTS), ("Imports", CHART_HI, IMPORTS)], YEARS, w=420, h=260, top=22),
 )
 REPORTS = [TRADE, KASPI]  # newest first; the first one is featured on the home page
 
@@ -272,9 +274,17 @@ def kind_label(r):
     return r["kind"] + (f' &middot; {r["sector"]}' if r.get("sector") else "")
 
 
+def row_mark(r, pre=""):
+    """Left of each article in a list: the company's logo, or the countries a trade brief covers."""
+    if r.get("logos"):
+        l, n = r["logos"][0]
+        return f'<img class="row-logo" src="{pre}assets/logos/{l}.svg" alt="{escape(n)} logo">'
+    return f'<span class="row-mark">{r["mark"]}</span>' if r.get("mark") else ""
+
+
 def row(r, pre=""):
     return f'''<div class="row" data-type="{r["tag"].lower()}">
-<div class="row-date"><time datetime="{r["iso"]}">{r["date"]}</time></div>
+<div class="row-date">{row_mark(r, pre)}<time datetime="{r["iso"]}">{r["date"]}</time></div>
 <div class="row-main"><div class="label">{kind_label(r)}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
 <div class="row-actions"><a href="{pre}{r["url"]}">Read</a>{pdf_link(r, pre)}<a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
@@ -415,7 +425,7 @@ kaspi_sections = f'''<h2>Key findings</h2><ol>
 <li>The Marketplace segment grew from 22.9% to 47.1% of segment revenue, mostly because of Turkey.</li>
 <li>Kaspi bought 65.4% of Hepsiburada for about $1.13 billion and raised its stake to 85% by January 2026.</li></ol>
 {fig(1, "Revenue and net income, ₸ trillion",
-     columns([("Revenue", GREY, [v/1e6 for v in K_REV]), ("Net income", ACCENT, [v/1e6 for v in K_NI])], K_YEARS,
+     columns([("Revenue", GREY, [v/1e6 for v in K_REV]), ("Net income", CHART_HI, [v/1e6 for v in K_NI])], K_YEARS,
              top=4.8, fmt="{:.2f}", desc="Kaspi.kz revenue rose from 1.91 to 4.05 trillion tenge while net income went from 0.85 to 1.07 trillion"),
      src_link(0, SRC_KASPI), KASPI["data"])}
 <h2>What changed in 2025</h2>
@@ -456,7 +466,7 @@ trade_sections = f'''<h2>2. Main results</h2><ol>
 <li>The balance moved from a surplus of $2.6 billion in 2020 to a deficit of $3.7 billion in 2025.</li></ol>
 <h2>3. Trade by year</h2>
 {fig(1, "Kazakhstan's exports to and imports from China, $ billion (Kazakh data)",
-     columns([("Exports to China", GREY, EXPORTS), ("Imports from China", ACCENT, IMPORTS)], YEARS, w=560, h=260, top=22,
+     columns([("Exports to China", GREY, EXPORTS), ("Imports from China", CHART_HI, IMPORTS)], YEARS, w=560, h=260, top=22,
              desc="Exports grew from 9.0 to 15.2 billion dollars; imports from 6.4 to 18.9 billion"),
      "Kazakh official statistics, sources 1-6", TRADE["data"])}
 <div class="table-title">Table 1. Kazakhstan's goods trade with China, $ billion (Kazakh data)</div>
@@ -468,7 +478,7 @@ trade_sections = f'''<h2>2. Main results</h2><ol>
 <h2>4. Structure of trade</h2>
 <figure class="figure"><div class="fig-title">Figure 2. Top five product groups in Kazakhstan's trade with China, 2024, $ billion</div>
 <div class="hbars-grid"><div><div class="hbars-head">Exports to China</div>{hbars(TOP_EXPORTS)}</div>
-<div><div class="hbars-head">Imports from China</div>{hbars(TOP_IMPORTS, colour=ACCENT)}</div></div>
+<div><div class="hbars-head">Imports from China</div>{hbars(TOP_IMPORTS, colour=CHART_HI)}</div></div>
 <figcaption>Source: {src_link(7, SRC_TRADE)} (Kazakhstan's data reported to UN Comtrade). <a href="../{TRADE["data"]}.xlsx" download>Download the data (XLSX)</a></figcaption></figure>
 <p>All five main exports are raw materials or products of primary processing, and their value depends on world commodity prices. All five main imports are finished or semi-finished goods.</p>
 <h2>5. Kazakh and Chinese statistics</h2>
@@ -636,6 +646,7 @@ SRC_CA = [
 
 CA = dict(
     slug="china-central-asia-2025",
+    mark="CN &middot; CA",
     url="research/china-central-asia-2025.html",
     tag="Trade",
     kind="Trade brief",
@@ -654,7 +665,7 @@ CA = dict(
     og_chart=columns([("China's data", GREY, [r[1] for r in CA_ROWS])], ["KZ", "KG", "UZ", "TM", "TJ"], w=420, h=260, top=56, fmt="{:.1f}"),
 )
 CA["feat"] = (None, "Trade with China in 2025, $ billion: China's figure and the country's own",
-              columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", ACCENT, [r[5] for r in CA_ROWS if r[5]])],
+              columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", CHART_HI, [r[5] for r in CA_ROWS if r[5]])],
                       [r[0] for r in CA_ROWS if r[5]], w=520, h=270, top=56, fmt="{:.1f}",
                       desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
               "Chinese customs via Xinhua and Eurasianet; national statistics")
@@ -699,7 +710,7 @@ ca_sections = f'''<h2>Key findings</h2><ol>
 <p>Kyrgyzstan's gap is bigger in absolute terms and far bigger in proportion. Its official figure of $4.97 billion is less than a fifth of China's $27.2 billion, and the difference grew from $17.1 billion in 2024 to about $22 billion in 2025 (RFE/RL). Kyrgyz customs officials told RFE/RL that China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use. Under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap.</p>
 <p>In Tajikistan the two sides agree on exports to China but not on imports: China reports $3.7 billion of goods sent, Tajik customs $2.3 billion received. Eurasianet links the difference to Chinese goods entering without being recorded. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's.</p>
 {fig(2, "Trade with China in 2025: China's figure and the country's own, $ billion",
-     columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", ACCENT, [r[5] for r in CA_ROWS if r[5]])],
+     columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", CHART_HI, [r[5] for r in CA_ROWS if r[5]])],
              [r[0] for r in CA_ROWS if r[5]], w=560, h=260, top=56, fmt="{:.1f}",
              desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
      src_link(1, SRC_CA) + "; " + src_link(3, SRC_CA) + "; " + src_link(4, SRC_CA) + "; " + src_link(5, SRC_CA), CA["data"])}
@@ -813,7 +824,7 @@ kap_sections = f'''<h2>Key findings</h2><ol>
 <h2>The company's price follows the market slowly</h2>
 <p>Most of Kazatomprom's uranium is sold under long-term contracts, and many of them follow the spot price with a delay. When spot jumped in 2024, the company's price rose less, and when spot fell 16% in 2025, its price fell only 6% (Figure 2). In the first half of 2026 the gap opened again: spot averaged $85.98 per pound, while Kazatomprom received $67.88.</p>
 {fig(2, "Kazatomprom's average realized price and the spot price, $ per pound of U3O8",
-     columns([("Kazatomprom realized price", GREY, U_PRICE + [U_H1["price"][1]]), ("Spot price", ACCENT, U_SPOT + [U_H1["spot"][1]])],
+     columns([("Kazatomprom realized price", GREY, U_PRICE + [U_H1["price"][1]]), ("Spot price", CHART_HI, U_SPOT + [U_H1["spot"][1]])],
              U_YEARS + ["1H 2026"], w=560, h=260, top=100, fmt="{:.0f}",
              desc="Realized price 55, 69, 65 and 68 dollars per pound; spot 61, 86, 73 and 86"),
      src_link(0, SRC_KAP) + "; " + src_link(1, SRC_KAP), KAP["data"])}
@@ -889,6 +900,7 @@ SRC_RU = [
 
 RU = dict(
     slug="china-russia-trade-2025",
+    mark="CN &middot; RU",
     url="research/china-russia-trade-2025.html",
     tag="Trade",
     kind="Trade brief",
@@ -909,7 +921,7 @@ RU = dict(
     og_chart=columns([("Total trade", GREY, RU_TOTAL)], YEARS, w=420, h=260, hi=5, top=270, fmt="{:.0f}"),
 )
 RU["feat"] = (YEARS, "China's trade with Russia, $ billion (Chinese customs data)",
-              columns([("Exports to Russia", GREY, RU_EXP), ("Imports from Russia", ACCENT, RU_IMP)], YEARS, w=520, h=270, top=140,
+              columns([("Exports to Russia", GREY, RU_EXP), ("Imports from Russia", CHART_HI, RU_IMP)], YEARS, w=520, h=270, top=140,
                       fmt="{:.0f}", desc="China's exports to and imports from Russia, 2020 to 2025"),
               "General Administration of Customs of China")
 
@@ -941,7 +953,7 @@ ru_sections = f'''<h2>2. Main results</h2><ol>
 <li>China's trade with Kazakhstan grew 11% in the same year, to $48.7 billion.</li></ol>
 <h2>3. Trade by year</h2>
 {fig(1, "China's exports to and imports from Russia, $ billion",
-     columns([("China's exports to Russia", GREY, RU_EXP), ("China's imports from Russia", ACCENT, RU_IMP)], YEARS, w=560, h=270, top=140,
+     columns([("China's exports to Russia", GREY, RU_EXP), ("China's imports from Russia", CHART_HI, RU_IMP)], YEARS, w=560, h=270, top=140,
              fmt="{:.0f}", desc="Exports grew from 51 to 115 billion dollars in 2024 and fell to 103 in 2025; imports grew from 57 to 129 and fell to 125"),
      src_link(5, SRC_RU), RU["data"])}
 <div class="table-title">Table 1. China's goods trade with Russia, $ billion</div>
@@ -953,7 +965,7 @@ ru_sections = f'''<h2>2. Main results</h2><ol>
 <h2>4. Structure of trade, 2025</h2>
 <figure class="figure"><div class="fig-title">Figure 2. Top five product groups in China's trade with Russia, 2025, $ billion</div>
 <div class="hbars-grid"><div><div class="hbars-head">China's exports to Russia</div>{hbars(RU_TOP_EXP)}</div>
-<div><div class="hbars-head">China's imports from Russia</div>{hbars(RU_TOP_IMP, colour=ACCENT)}</div></div>
+<div><div class="hbars-head">China's imports from Russia</div>{hbars(RU_TOP_IMP, colour=CHART_HI)}</div></div>
 <figcaption>Source: {src_link(2, SRC_RU)}; {src_link(3, SRC_RU)}. <a href="../{RU["data"]}.xlsx" download>Download the data (XLSX)</a></figcaption></figure>
 <p>China sells Russia mainly machinery, electrical equipment and vehicles, which together made up 53% of its exports to Russia in 2025. It buys mainly fuel: oil, gas and coal were 63% of its imports from Russia. The pattern is the same as in Kazakhstan's trade with China, on a larger scale.</p>
 <h2>5. What changed in 2025</h2>
@@ -1074,7 +1086,7 @@ geely_sections = f'''<h2>Key findings</h2><ol>
 <p>Reported profit attributable to shareholders was almost unchanged, RMB16.85 billion against RMB16.81 billion. The 2024 figure was lifted by a one-off gain of RMB9.35 billion on disposals. Without such items, the company's core profit rose 36%, to RMB14.41 billion. The gross margin stayed close to 16.6%, which the company links to fierce price competition in China. The dividend rose from HK$0.33 to HK$0.50 a share.</p>
 {fig(2, "Reported and core profit attributable to shareholders, RMB billion",
      columns([("Reported profit", GREY, [G_NP[1], G_NP[2], G_H1["np"][0], G_H1["np"][1]]),
-              ("Core profit", ACCENT, [G_CORE[1], G_CORE[2], G_H1["core"][0], G_H1["core"][1]])],
+              ("Core profit", CHART_HI, [G_CORE[1], G_CORE[2], G_H1["core"][0], G_H1["core"][1]])],
              ["2024", "2025", "1H 2025", "1H 2026"], w=560, h=260, top=20, fmt="{:.1f}",
              desc="Reported profit 16.8, 16.9, 9.3 and 9.1 billion yuan; core profit 10.6, 14.4, 6.6 and 9.7"),
      src_link(0, SRC_GEELY) + "; " + src_link(1, SRC_GEELY), GEELY["data"])}
@@ -1117,7 +1129,7 @@ report(CA, ca_sections,
         ("Kazakhstan's share", "46%"), ("Kyrgyzstan, own data", "$4.97 bn")], SRC_CA)
 
 TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
-                 columns([("Exports", GREY, EXPORTS), ("Imports", ACCENT, IMPORTS)], YEARS, w=520, h=270, top=22,
+                 columns([("Exports", GREY, EXPORTS), ("Imports", CHART_HI, IMPORTS)], YEARS, w=520, h=270, top=22,
                          desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
 REPORTS = [GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
 
@@ -1347,11 +1359,11 @@ for name in ("style.css", "site.js"):
 
 # 1200x630 cards; tools/render_og.js turns them into og/*.png
 OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#faf7f2;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
-          ".c{box-sizing:border-box;width:1200px;height:630px;padding:56px 64px;display:flex;flex-direction:column;border-top:14px solid " + ACCENT + "}"
+          ".c{box-sizing:border-box;width:1200px;height:630px;padding:56px 64px;display:flex;flex-direction:column;border-top:14px solid " + CHART_HI + "}"
           ".top{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:20px;letter-spacing:1px;text-transform:uppercase}"
-          ".top b{color:" + ACCENT + ";font-weight:500}.mid{flex:1;display:flex;gap:48px;align-items:center}"
+          ".top b{color:" + CHART_HI + ";font-weight:500}.mid{flex:1;display:flex;gap:48px;align-items:center}"
           "h1{font-family:'IBM Plex Sans',Arial,sans-serif;font-size:50px;line-height:1.15;margin:0 0 28px;font-weight:600}"
-          ".num{font-family:'IBM Plex Sans',Arial,sans-serif;font-size:76px;font-weight:600;color:" + ACCENT + ";line-height:1}"
+          ".num{font-family:'IBM Plex Sans',Arial,sans-serif;font-size:76px;font-weight:600;color:" + CHART_HI + ";line-height:1}"
           ".cap{font-size:24px;color:#4a5562;margin-top:8px}.chart{width:420px;flex:none}"
           ".foot{display:flex;justify-content:space-between;font-size:22px;color:#4a5562;border-top:2px solid " + INK + ";padding-top:18px}")
 og_dir = os.path.join(HERE, "og")
