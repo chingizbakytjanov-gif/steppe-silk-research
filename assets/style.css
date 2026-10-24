@@ -231,3 +231,38 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .row-logo { display: block; max-width: 132px; max-height: 46px; width: auto; height: auto; margin-bottom: 10px; }
 .row-mark { display: inline-block; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--ink); border: 1px solid var(--ink); padding: 3px 7px; margin-bottom: 10px; letter-spacing: .5px; }
 @media (max-width: 760px) { .row-logo, .row-mark { margin-bottom: 6px; } .row-logo { max-height: 26px; } }
+
+/* Home: photo masthead. Background colour is the fallback while the photo loads and keeps the text readable. */
+.hero { position: relative; overflow: hidden; background: #1f2d3d; border-bottom: 0; min-height: 460px; display: flex; align-items: flex-end; }
+.hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 70%; }
+.hero-shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(14,21,31,.78) 0%, rgba(14,21,31,.55) 45%, rgba(14,21,31,.10) 80%, rgba(14,21,31,0) 100%); }
+.hero .wrap { position: relative; width: 100%; padding-top: 56px; padding-bottom: 150px; align-self: flex-start; }
+.hero h1 { color: #fff; }
+.hero p { color: rgba(255,255,255,.9); }
+.hero .hero-credit { position: absolute; right: 12px; bottom: 8px; margin: 0; font-size: 11px; color: rgba(255,255,255,.85); background: rgba(14,21,31,.55); padding: 3px 8px; max-width: 80%; text-align: right; }
+.hero-credit a { color: #fff; text-decoration-color: rgba(255,255,255,.5); }
+.hero-credit a:hover { color: #fff; }
+
+/* Home: key numbers under the photo */
+.numbers { border-bottom: 1px solid var(--line); background: #fff; }
+.numbers .wrap { padding-top: 18px; padding-bottom: 20px; }
+.numbers-head { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 10px; }
+.numbers-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
+.number { display: block; padding: 4px 16px 4px 0; text-decoration: none; color: var(--ink); border-right: 1px solid var(--line); margin-right: 16px; }
+.number:last-child { border-right: 0; margin-right: 0; }
+.number b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.number span { display: block; font-size: 13px; color: var(--soft); line-height: 1.35; margin-top: 2px; }
+.number:hover b { color: var(--accent); }
+@media (max-width: 960px) { .numbers-row { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 14px; } .number:nth-child(3n) { border-right: 0; margin-right: 0; } }
+@media (max-width: 760px) {
+  .hero { min-height: 420px; }
+  .hero .wrap { padding-top: 32px; padding-bottom: 150px; }
+  .hero p { font-size: 16px; }
+  .hero-img { object-position: 22% 80%; }
+  .hero { overflow: visible; margin-bottom: 44px; }
+  .hero .hero-credit { top: 100%; bottom: auto; left: 0; right: 0; max-width: none; text-align: left; background: var(--paper); color: var(--muted); font-size: 11px; line-height: 1.4; padding: 6px 16px; }
+  .hero .hero-credit a { color: var(--ink); text-decoration-color: var(--line); }
+  .numbers-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .number { border-right: 0; margin-right: 0; }
+  .number b { font-size: 22px; }
+}
