@@ -1176,10 +1176,26 @@ def card(c):
 
 
 F = REPORTS[0]
-home = f'''<section class="masthead"><div class="wrap">
+HERO_CREDIT = ('Photo: Kazakhstan Temir Zholy freight train between Joloman and Saryozek, Almaty Region. '
+               '<a href="https://commons.wikimedia.org/wiki/File:KTZ_TE33A_Joloman.jpg" rel="noopener">David Gubler</a>, '
+               '<a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener">CC BY-SA 3.0</a>, cropped')
+# Key numbers from the reports; each links to the report it comes from.
+NUMBERS = [("$228.1 bn", "China-Russia trade, 2025", RU), ("$106.3 bn", "China-Central Asia trade, 2025", CA),
+           ("$34.1 bn", "Kazakhstan-China trade, 2025", TRADE), ("25,839 t", "Uranium mined by Kazatomprom, 2025", KAP),
+           ("+158%", "Geely exports, 1H 2026", GEELY), ("+60%", "Kaspi.kz revenue growth, 2025", KASPI)]
+home = f'''<section class="masthead hero">
+<img class="hero-img" src="assets/photos/hero-ktz-2400.jpg" srcset="assets/photos/hero-ktz-1200.jpg 1200w, assets/photos/hero-ktz-2400.jpg 2400w"
+ sizes="100vw" width="2400" height="767" alt="A long freight train of Kazakhstan Temir Zholy crossing the steppe, with hills behind">
+<div class="hero-shade"></div>
+<div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
 <p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank, Kazatomprom and Geely, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
-</div></section>
+</div>
+<p class="hero-credit">{HERO_CREDIT}</p>
+</section>
+<section class="numbers"><div class="wrap"><div class="numbers-head">By the numbers</div><div class="numbers-row">
+{"".join(f'<a class="number" href="{r["url"]}"><b>{v}</b><span>{k}</span></a>' for v, k, r in NUMBERS)}
+</div></div></section>
 
 <section class="block"><div class="wrap">
 <div class="block-head"><h2>Latest</h2></div>
@@ -1316,7 +1332,7 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, Geely Automobile Holdings, Zeekr and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, Geely Automobile Holdings, Zeekr and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence.</p>
 <p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>
