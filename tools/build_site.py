@@ -1039,7 +1039,7 @@ GEELY = dict(
     art=columns([("Revenue", GREY, G_REV)], G_YEARS, w=300, h=150, hi=2, top=400, fmt="{:.0f}",
                 desc="Geely revenue, RMB billion: 225 in 2023, 276 in 2024, 345 in 2025"),
     art_title="Revenue, RMB bn",
-    pdf="reports/geely-2026.pdf", pages=3,
+    pdf="reports/geely-2026.pdf", pages=2,
     data="data/geely-2023-2026",
     og_num="+158%", og_cap="Geely's exports in 1H 2026, as car sales in China fell 24%",
     og_chart=columns([("Revenue", GREY, G_REV)], G_YEARS, w=420, h=260, hi=2, top=400, fmt="{:.0f}"),
@@ -1440,8 +1440,7 @@ def pdf_doc(r, abstract, body, view_file, refs):
             f'<div class="dt">Steppe &amp; Silk Research, {r["date_long"]}</div></div>'
             f'<div class="abs"><b>Summary.</b> {abstract}</div>{body}'
             + (f'<h2>Author\'s view</h2><p>{view_text}</p>' if view_text else '') + f'<h2>References</h2><ol class="ref">{refs_html}</ol>'
-            '<div class="meth">Note on method: AI (Claude) was used as a tutor and editor and helped collect the data and draw the figures. '
-            'Figures are taken from the sources listed; calculations are the author\'s.</div></body></html>')
+            '<div class="meth">Figures are taken from the sources listed.</div></body></html>')
 
 
 halyk_pdf = pdf_doc(HALYK, HALYK["summary"], f'''
