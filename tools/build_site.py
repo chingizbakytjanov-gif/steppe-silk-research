@@ -274,11 +274,16 @@ def kind_label(r):
     return r["kind"] + (f' &middot; {r["sector"]}' if r.get("sector") else "")
 
 
+def logo_src(l):
+    """Logo files are SVG unless the name gives another extension (Air Astana's is a PNG)."""
+    return l if "." in l else l + ".svg"
+
+
 def row_mark(r, pre=""):
     """Left of each article in a list: the company's logo, or the countries a trade brief covers."""
     if r.get("logos"):
         l, n = r["logos"][0]
-        return f'<img class="row-logo" src="{pre}assets/logos/{l}.svg" alt="{escape(n)} logo">'
+        return f'<img class="row-logo" src="{pre}assets/logos/{logo_src(l)}" alt="{escape(n)} logo">'
     return f'<span class="row-mark">{r["mark"]}</span>' if r.get("mark") else ""
 
 
@@ -378,7 +383,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
             'It is not investment advice or a recommendation to buy or sell any security.</p>') if disclaimer else ""
     body = f'''<article class="report"><div class="wrap">
 <header class="report-head">
-{"".join(f'<img class="report-logo" src="{pre}assets/logos/{l}.svg" alt="{escape(n)} logo">' for l, n in r.get("logos", []))}
+{"".join(f'<img class="report-logo" src="{pre}assets/logos/{logo_src(l)}" alt="{escape(n)} logo">' for l, n in r.get("logos", []))}
 <div class="label"><a href="{pre}research.html#{r["tag"].lower()}">{kind_label(r)}</a></div>
 <h1>{r["title"]}</h1>
 <p class="dek">{r["line"]}</p>
@@ -411,6 +416,66 @@ def fig(n, title, chart, source_html, data_base):
             f'<figcaption>Source: {source_html}. <a href="../{data_base}.csv" download>Download the data (CSV)</a></figcaption></figure>')
 
 
+# ---------- Valuation ----------
+# Closing prices on 30 October 2026 and the National Bank of Kazakhstan's official rates set on that day's trading.
+PRICE_DATE = "30 October 2026"
+USD_KZT, HKD_KZT, CNY_KZT = 453.87, 57.85, 68.22
+HKD_CNY = HKD_KZT / CNY_KZT
+SRC_PRICES = [
+    ("Kazakhstan Stock Exchange (KASE), share pages for KSPI, HSBK, KZAP, KMGZ and AIRA, trades on 30 October 2026",
+     "https://kase.kz/en/investors/shares/KMGZ/", "KASE"),
+    ("Hong Kong closing prices for Geely Automobile (0175) and China Southern Airlines (1055), 30 October 2026, via Stock Analysis",
+     "https://stockanalysis.com/quote/hkg/0175/", "Stock Analysis"),
+    ("National Bank of Kazakhstan, official exchange rates set on 30 October 2026",
+     "https://nationalbank.kz/en/exchangerates/ezhednevnye-oficialnye-rynochnye-kursy-valyut", "National Bank of Kazakhstan"),
+]
+SRC_PRICES += [
+    ("Stock Analysis, valuation statistics (price to earnings over the last twelve months) for Nu Holdings, Cameco and BYD, 31 October 2026",
+     "https://stockanalysis.com/stocks/nu/statistics/", "Stock Analysis"),
+    ("Kazakhstan Stock Exchange, Information on shares and shareholders of Halyk Bank of Kazakhstan as of July 1, 2026",
+     "https://kase.kz/en/information/news/show/1571847", "KASE, Halyk shares"),
+]
+# company, price, currency, shares (million), market value in local currency (billion), local unit, profit 2025 (same unit),
+# dividend per share over the last year, book value (billion) or None
+VAL = dict(
+    KSPI=dict(name="Kaspi.kz", price=42570, cur="₸", shares=190.03, unit="₸", profit=1067.7, dps=4000, book=None),
+    HSBK=dict(name="Halyk Bank", price=372.93, cur="₸", shares=13447.544782 - 2533.811689, unit="₸", profit=1058.4, dps=58.19, book=3643.1),
+    KZAP=dict(name="Kazatomprom", price=28350, cur="₸", shares=259.356608, unit="₸", profit=570, dps=335000 / 259.356608, book=None),
+    KMGZ=dict(name="KazMunayGas", price=36052.80, cur="₸", shares=350000 / 573.66, unit="₸", profit=1072, dps=573.66, book=None),
+    AIRA=dict(name="Air Astana", price=699.87, cur="₸", shares=369.314 / 1.025, unit="$", profit=13.552 / 1000, dps=None, book=369.314 / 1000),
+    G175=dict(name="Geely Automobile", price=13.84, cur="HK$", shares=10790, unit="RMB", profit=16.85, dps=0.50, book=None),
+    CS1055=dict(name="China Southern Airlines", price=2.72, cur="HK$", shares=18120.922035, unit="RMB", profit=0.855, dps=None, book=35.792),
+)
+for _v in VAL.values():
+    _local = _v["price"] * _v["shares"] / 1000                     # billion, in the currency of the price
+    if _v["cur"] == "HK$":
+        _v["mv"], _v["usd"] = _local * HKD_CNY, _local * HKD_KZT / USD_KZT
+    elif _v["unit"] == "$":
+        _v["mv"], _v["usd"] = _local / USD_KZT, _local / USD_KZT
+    else:
+        _v["mv"], _v["usd"] = _local, _local / USD_KZT
+    _v["pe"] = _v["mv"] / _v["profit"]
+    _v["pb"] = _v["mv"] / _v["book"] if _v["book"] else None
+    _v["dy"] = _v["dps"] / _v["price"] * 100 if _v["dps"] is not None else None
+
+
+def val_table(key, n, extra=()):
+    """Table n: what the market pays for the company, from the closing price on PRICE_DATE."""
+    v = VAL[key]
+    price = v["cur"] + (f'{v["price"]:,.2f}'.rstrip("0").rstrip(".") if v["price"] % 1 else f'{v["price"]:,.0f}')
+    mv = f'{v["unit"]}{v["mv"]:,.0f} billion' if v["unit"] != "$" else f'${v["mv"]:.2f} billion'
+    if v["unit"] == "$":
+        mv = f'${v["mv"] * 1000:,.0f} million'
+    rows = [["Share price, " + PRICE_DATE, price], ["Market value", mv if v["unit"] == "$" else f"{mv} (US${v['usd']:.1f} billion)"],
+            ["Price to 2025 profit (P/E)", f'{v["pe"]:.1f}']]
+    if v["pb"]:
+        rows.append(["Price to book value (P/B)", f'{v["pb"]:.2f}'])
+    if v["dy"] is not None:
+        rows.append(["Dividend yield", f'{v["dy"]:.1f}%'])
+    rows += list(extra)
+    return f'<div class="table-title">Table {n}. Valuation at the close on {PRICE_DATE}</div>{table(["", ""], rows)}'
+
+
 kaspi_notes = '''<ul class="notes">
 <li>All figures come from Kaspi.kz's annual report on Form 20-F for 2025 (segment and earnings notes, pp. F-33 to F-42).</li>
 <li>Segment revenue is shown before inter-segment eliminations and customer rewards, so the three segments do not add up exactly to total revenue.</li>
@@ -441,6 +506,11 @@ kaspi_sections = f'''<h2>Key findings</h2><ol>
         ["Revenue growth", "n/a", "+32.3%", "+59.8%"], ["Net income growth", "n/a", "+24.5%", "+1.0%"],
         ["Net margin", *[f"{v}%" for v in K_MARGIN]], ["Marketplace share of segment revenue", *[f"{v}%" for v in K_MKT_SHARE]]])}
 <p class="table-note">Segment revenue is before inter-segment eliminations and customer rewards. Source: {src_link(0, SRC_KASPI)}.</p>
+<h2>Valuation</h2>
+<p>At the close on {PRICE_DATE} Kaspi's shares on the Kazakhstan Stock Exchange cost ₸42,570, which values the company at about ₸{VAL['KSPI']['mv'] / 1000:.1f} trillion (Table 2). That is {VAL['KSPI']['pe']:.1f} times its net income for 2025. Kaspi paid ₸850 per share for the fourth quarter of 2025 and for the first quarter of 2026, and ₸1,000 for the second quarter. If it keeps paying ₸1,000 a quarter, the yield is {VAL['KSPI']['dy']:.1f}%.</p>
+<p>Nu Holdings, a Brazilian digital bank, trades at 15.8 times its profit over the last twelve months. A low multiple usually means that investors expect slower growth or see more risk. For Kaspi the obvious reasons are in the next section: losses in Turkey, currency exposure and net income that grew only 1% in 2025.</p>
+{val_table('KSPI', 2)}
+<p class="table-note">Market value is the KASE price times 190.03 million shares. Dividend yield uses ₸1,000 a quarter. Sources: KASE; Stock Analysis (share count, Nu Holdings).</p>
 <h2>Risks</h2><ol>
 <li>Hepsiburada still loses money. The key test for 2026 is whether these losses shrink.</li>
 <li>Turkey has high inflation and a weak lira, and the deal was paid in U.S. dollars, which raises Kaspi's exchange-rate risk.</li>
@@ -493,7 +563,7 @@ trade_sections = f'''<h2>2. Main results</h2><ol>
 
 report(KASPI, kaspi_sections,
        [("Revenue growth, 2025", "+60%"), ("Net income growth, 2025", "+1%"), ("Net margin, 2024", "41.7%"),
-        ("Net margin, 2025", "26.4%"), ("Stake in Hepsiburada", "85%")], SRC_KASPI, disclaimer=True)
+        ("Net margin, 2025", "26.4%"), ("Stake in Hepsiburada", "85%")], SRC_KASPI + SRC_PRICES[:1] + SRC_PRICES[3:4], disclaimer=True)
 report(TRADE, trade_sections,
        (["Indicator, $ billion", "2024", "2025", "Change"],
         [["Total trade, Kazakh data", "30.1", "34.1", "+13.3%"], ["Exports to China", "14.9", "15.2", "+2.0%"],
@@ -613,6 +683,11 @@ halyk_sections = f'''<h2>Key findings</h2><ol>
              desc="Net interest margin 6.1% in 2023, 7.2% in 2024, 7.1% in 2025 and 6.8% in the first half of 2026"),
      src_link(1, SRC_HALYK) + "; " + src_link(0, SRC_HALYK) + "; " + src_link(3, SRC_HALYK), HALYK["data"])}
 <p>Costs also took a bigger share: the cost-to-income ratio rose from 17.2% to 19.2%. Lending kept growing, with gross loans up 13.2% over the year to June 2026, and the cost of risk stayed at 1.4%, which the bank calls a normal level. So the fall in profit comes from the price of money, not from bad loans.</p>
+<h2>Valuation</h2>
+<p>Halyk's shares closed at ₸372.93 on {PRICE_DATE}. With 10.9 billion shares in circulation (13.4 billion issued, less 2.5 billion the bank has bought back), the market value is about ₸{VAL['HSBK']['mv'] / 1000:.1f} trillion (Table 2). That is {VAL['HSBK']['pe']:.1f} times the bank's 2025 net income and {VAL['HSBK']['pb']:.2f} times its equity of ₸3.64 trillion at the end of June 2026.</p>
+<p>For a bank that earned more than 30% on its equity in each of the last three years, paying only a little above book value is cheap. Kaspi trades at {VAL['KSPI']['pe']:.1f} times its profit. Two things explain part of the gap: profit is falling in 2026, and investors may expect regulation to keep squeezing the margin. Halyk also pays a lot out. Shareholders received ₸30.10 per share in May 2026 and another ₸28.09 in September, a yield of {VAL['HSBK']['dy']:.1f}% at the current price.</p>
+{val_table('HSBK', 2)}
+<p class="table-note">Book value is total equity at 30 June 2026. Dividend yield uses both payments for 2025. Sources: KASE; KASE, Halyk shares; {src_link(3, SRC_HALYK)}.</p>
 <h2>Risks</h2><ol>
 <li>The National Bank kept its base rate at 18% in March 2026. If rates stay high longer, deposits stay expensive and the margin stays under pressure.</li>
 <li>Further limits on consumer lending would slow the bank's retail loan book.</li>
@@ -690,22 +765,24 @@ CA["notes"] = '''<ul class="notes">
 
 ca_rows_html = [[c, f"{t:.1f}", f"{g:+.1f}%".replace(".0%", "%").replace("-", "−"), f"{e:.1f}", f"{i:.1f}",
                  "n/a" if o is None else f"{o:.1f}"] for c, t, g, e, i, o in CA_ROWS]
-ca_sections = f'''<h2>Key findings</h2><ol>
+_ca_view = os.path.join(HERE, "view_central_asia.txt")
+_ca_view = open(_ca_view).read().strip() if os.path.exists(_ca_view) else ""
+ca_sections = f'''<h2>2. Main results</h2><ol>
 <li>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time.</li>
 <li>China exported $71.2 billion to the region and imported $35.1 billion, a surplus of $36.1 billion.</li>
 <li>Kazakhstan accounts for 46% of the total. Kyrgyzstan is second with 26% and grew fastest, by 20%.</li>
 <li>Kyrgyzstan's own statistics show $4.97 billion of trade with China, against $27.2 billion in Chinese data.</li></ol>
+<h2>3. Trade by country</h2>
 <figure class="figure"><div class="fig-title">Figure 1. China's trade with each Central Asian country, 2025, $ billion (Chinese data)</div>
 {hbars([(c, t) for c, t, *_ in CA_ROWS], fmt="{:.1f}")}
 <figcaption>Source: {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}. <a href="../{CA["data"]}.csv" download>Download the data (CSV)</a></figcaption></figure>
-<h2>Four countries buy more than they sell</h2>
 <p>China sells Central Asia about twice as much as it buys. Kazakhstan, Kyrgyzstan, Uzbekistan and Tajikistan all import more from China than they export to it. For Uzbekistan the ratio is more than seven to one: $14.2 billion of goods from China against $1.9 billion going the other way.</p>
 <p>Turkmenistan is the exception. It sold China $8.4 billion of goods in 2025, almost all of it natural gas, and bought $1.6 billion. It was also the only country whose trade with China fell, by 5.6%.</p>
 <div class="table-title">Table 1. China's trade with Central Asia, 2025, $ billion</div>
 {table(["", "Total, China's data", "Growth", "China's exports", "China's imports", "Total, country's own data"],
        ca_rows_html + [["**Central Asia", f"{CA_TOTAL:.1f}", "+12%", f"{CA_EXP:.1f}", f"{CA_IMP:.1f}", ""]])}
 <p class="table-note">Sources: {src_link(0, SRC_CA)}; {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}; {src_link(3, SRC_CA)}; {src_link(4, SRC_CA)}; {src_link(5, SRC_CA)}.</p>
-<h2>The same trade, counted twice</h2>
+<h2>4. The same trade, counted twice</h2>
 <p>The countries' own statistics tell a different story (Figure 2). Kazakhstan records $34.1 billion of trade with China, $14.6 billion less than China does. The previous <a href="kazakhstan-china-trade.html">trade brief</a> looked at that gap in detail.</p>
 <p>Kyrgyzstan's gap is bigger in absolute terms and far bigger in proportion. Its official figure of $4.97 billion is less than a fifth of China's $27.2 billion, and the difference grew from $17.1 billion in 2024 to about $22 billion in 2025 (RFE/RL). Kyrgyz customs officials told RFE/RL that China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use. Under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap.</p>
 <p>In Tajikistan the two sides agree on exports to China but not on imports: China reports $3.7 billion of goods sent, Tajik customs $2.3 billion received. Eurasianet links the difference to Chinese goods entering without being recorded. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's.</p>
@@ -715,7 +792,7 @@ ca_sections = f'''<h2>Key findings</h2><ol>
              desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
      src_link(1, SRC_CA) + "; " + src_link(3, SRC_CA) + "; " + src_link(4, SRC_CA) + "; " + src_link(5, SRC_CA), CA["data"])}
 <p>For anyone using these numbers, the practical point is to say whose data they are. A headline of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up somewhere else.</p>
-{view("view_central_asia.txt")}'''
+{f'<h2>5. Author{chr(39)}s comment</h2><blockquote class="view">{_ca_view}</blockquote>' if _ca_view else ""}'''
 
 # Kazatomprom: operating and financial reviews for 2023-2025 and the first half of 2026
 U_YEARS = ["2023", "2024", "2025"]
@@ -849,6 +926,11 @@ kap_sections = f'''<h2>Key findings</h2><ol>
 <p class="table-note">Annual profit to shareholders is adjusted for one-off items; half-year figures had none. Sources: {src_link(0, SRC_KAP)}; {src_link(1, SRC_KAP)}; {src_link(2, SRC_KAP)}; {src_link(3, SRC_KAP)}.</p>
 <h2>Growing more slowly on purpose</h2>
 <p>Kazatomprom is not trying to produce as much as its licences allow. In August 2025 it said its nominal 2026 production level would be about 10% lower, 29,697 tU instead of 32,777 tU. Its 2026 guidance is 27,500 to 29,000 tU, and the company says this depends on sulphuric acid being available.</p>
+<h2>Valuation</h2>
+<p>Kazatomprom's shares closed at ₸28,350 on the Kazakhstan Stock Exchange on {PRICE_DATE}, a market value of about ₸{VAL['KZAP']['mv'] / 1000:.1f} trillion, or ${VAL['KZAP']['usd']:.1f} billion (Table 3). That is {VAL['KZAP']['pe']:.1f} times adjusted profit to shareholders for 2025. The ₸335 billion dividend for 2025 works out at about ₸1,292 per share, a yield of {VAL['KZAP']['dy']:.1f}%.</p>
+<p>Cameco, the Canadian producer and Kazatomprom's best-known listed rival, trades at about 118 times its profit over the last twelve months. Cameco's own profit was small over that period, which inflates its multiple, so the comparison is rough. Still, investors pay far less for each tenge of Kazatomprom's profit, which fits the risks below: a tax that rises with the price and acid shortages that could cap output.</p>
+{val_table('KZAP', 3)}
+<p class="table-note">Market value is the KASE price times 259.36 million shares. Sources: KASE; Stock Analysis (Cameco); {src_link(0, SRC_KAP)}.</p>
 <h2>Risks</h2><ol>
 <li>Profit depends on the uranium price, which fell 16% on the spot market in 2025 and rose again in 2026.</li>
 <li>The new extraction tax rises with both output and price, so it takes a larger share when the market is strong.</li>
@@ -859,7 +941,7 @@ kap_sections = f'''<h2>Key findings</h2><ol>
 
 report(KAP, kap_sections,
        [("Production, 2025", "25,839 tU"), ("Production growth", "+11%"), ("Revenue, 2025", "₸1.80 trn"),
-        ("Cash cost per lb, 1H 2026", "+37%"), ("Profit to shareholders, 1H 2026", "−23%")], SRC_KAP, disclaimer=True)
+        ("Cash cost per lb, 1H 2026", "+37%"), ("Profit to shareholders, 1H 2026", "−23%")], SRC_KAP + SRC_PRICES[:1] + SRC_PRICES[3:4], disclaimer=True)
 # China and Russia: GACC monthly bulletin, December issue of each year (US$ thousand -> $ billion)
 RU_RAW = [(107765163, 50584583, 57180581), (146887244, 67565332, 79321912), (190271620, 76122649, 114148971),
           (240111548, 110972451, 129139097), (244819535, 115499179, 129320356), (228104895, 103309028, 124795867)]
@@ -1039,7 +1121,7 @@ GEELY = dict(
     art=columns([("Revenue", GREY, G_REV)], G_YEARS, w=300, h=150, hi=2, top=400, fmt="{:.0f}",
                 desc="Geely revenue, RMB billion: 225 in 2023, 276 in 2024, 345 in 2025"),
     art_title="Revenue, RMB bn",
-    pdf="reports/geely-2026.pdf", pages=2,
+    pdf="reports/geely-2026.pdf", pages=3,
     data="data/geely-2023-2026",
     og_num="+158%", og_cap="Geely's exports in 1H 2026, as car sales in China fell 24%",
     og_chart=columns([("Revenue", GREY, G_REV)], G_YEARS, w=420, h=260, hi=2, top=400, fmt="{:.0f}"),
@@ -1110,6 +1192,11 @@ geely_sections = f'''<h2>Key findings</h2><ol>
 <p class="table-note">Profit is attributable to owners of the parent. Sources: {src_link(0, SRC_GEELY)}; {src_link(1, SRC_GEELY)}.</p>
 <h2>Geely in Kazakhstan</h2>
 <p>Kazakhstan appears twice in Geely's 2025 annual report. Geely makes cars with local partners at 12 plants outside China, and in 2025 the plant in Kazakhstan began producing both electric and petrol cars on two lines. Zeekr, which has 152 stores in about 50 countries outside mainland China, says it was among the top three luxury electric car brands in Kazakhstan. The report gives no sales figures for Kazakhstan itself.</p>
+<h2>Valuation</h2>
+<p>Geely's shares closed at HK$13.84 in Hong Kong on {PRICE_DATE}. With about 10.8 billion shares after the Zeekr deal, the market value is HK${VAL['G175']['price'] * VAL['G175']['shares'] / 1000:.0f} billion, or about RMB{VAL['G175']['mv']:.0f} billion (Table 3). That is {VAL['G175']['pe']:.1f} times reported profit for 2025 and {VAL['G175']['mv'] / G_CORE[2]:.1f} times core profit. The final dividend of HK$0.50 gives a yield of {VAL['G175']['dy']:.1f}%.</p>
+<p>BYD, China's largest carmaker, trades at about 17 times its profit over the last twelve months. The market values Geely at less than half of that. The doubt is about whether the export boom lasts and whether the 2026 sales target will be met.</p>
+{val_table('G175', 3, [["Price to 2025 core profit", f"{VAL['G175']['mv'] / G_CORE[2]:.1f}"]])}
+<p class="table-note">Hong Kong dollars converted to yuan at {HKD_CNY:.3f}, the cross rate from the National Bank of Kazakhstan's official rates. Sources: Stock Analysis (price, share count, BYD); {src_link(0, SRC_GEELY)}.</p>
 <h2>Risks</h2><ol>
 <li>The 2026 target of 3.45 million cars needs about 1.21 million sales in October to December, around 405,000 a month. In September Geely sold 292,168.</li>
 <li>The car market in China is shrinking and price competition remains fierce, which limits margins.</li>
@@ -1119,19 +1206,408 @@ geely_sections = f'''<h2>Key findings</h2><ol>
 
 report(GEELY, geely_sections,
        [("Revenue, 2025", "RMB345 bn"), ("Cars sold, 2025", "3.02 mn"), ("Exports, 1H 2026", "+158%"),
-        ("Zeekr sales, 1H 2026", "+97%"), ("Core profit, 1H 2026", "+46%")], SRC_GEELY, disclaimer=True)
+        ("Zeekr sales, 1H 2026", "+97%"), ("Core profit, 1H 2026", "+46%")], SRC_GEELY + SRC_PRICES[1:4], disclaimer=True)
 
 report(HALYK, halyk_sections,
        [("Net income, 2025", "₸1.06 trn"), ("Return on equity, 2025", "32.6%"), ("Net income, 1H 2026", "−15.3%"),
-        ("Interest margin, 1H 2026", "6.8%"), ("Cost of risk, 1H 2026", "1.4%")], SRC_HALYK, disclaimer=True)
+        ("Interest margin, 1H 2026", "6.8%"), ("Price to book value", f"{VAL['HSBK']['pb']:.2f}")], SRC_HALYK + SRC_PRICES[:1] + SRC_PRICES[4:5], disclaimer=True)
 report(CA, ca_sections,
-       [("Trade, 2025", "$106.3 bn"), ("Growth", "+12%"), ("China's surplus", "$36.1 bn"),
-        ("Kazakhstan's share", "46%"), ("Kyrgyzstan, own data", "$4.97 bn")], SRC_CA)
+       (["Indicator, $ billion", "2025", "Change"],
+        [["China's trade with Central Asia", f"{CA_TOTAL:.1f}", "+12%"], ["China's exports to the region", f"{CA_EXP:.1f}", ""],
+         ["China's imports from the region", f"{CA_IMP:.1f}", ""], ["China's surplus", f"{CA_EXP - CA_IMP:.1f}", ""],
+         ["Kazakhstan, Chinese data", "48.7", "+11%"], ["Kyrgyzstan, Chinese data / own data", "27.2 / 4.97", ""]]),
+       SRC_CA,
+       meta=[("Subject", "Goods trade between China and the five Central Asian states"), ("Period", "2025, calendar year"),
+             ("Unit", "US$ billion, current prices"),
+             ("Data", "General Administration of Customs of China; national statistics of Kazakhstan, Kyrgyzstan, Uzbekistan and Tajikistan"),
+             ("Published", "17 October 2026; format revised 1 November 2026"), ("Format", "Trade brief")])
+
+# ---------- New reports, November 2026 ----------
+
+# KazMunayGas: IFRS results releases for 2024, 2025 and the first half of 2026 (₸ billion unless stated)
+M_YEARS = ["2023", "2024", "2025"]
+M_REV = [8320, 8330, 9371]
+M_NP = [927, 1094, 1072]                 # net profit, including share in profit of joint ventures and associates
+M_EBITDA = [2007, 2001, 2393]
+M_FCF = [984, 1199, 1233]
+M_NETDEBT = [1645, 1163, 375]            # at 31 December
+M_OIL = [23532, 23837, 26211]            # oil and gas condensate production, thousand tonnes, net to KMG
+M_BRENT = [82.64, 80.76, 69.10]          # Dated Brent, average, $/bbl
+M_FX = [456.21, 469.31, 521.31]          # average tenge per US dollar
+M_H1 = dict(rev=(4500, 5568), np=(534, 904), ebitda=(1142, 1655), fcf=(682, 765), oil=(13043, 12437),
+            brent=(71.87, 92.31), fx=(512.05, 486.20))
+M_LTM = M_NP[2] - M_H1["np"][0] + M_H1["np"][1]   # net profit, July 2025 to June 2026
+
+SRC_KMG = [
+    ("KazMunayGas, Financial results for 2025 (press release, 2026)",
+     "https://www.kmg.kz/en/press-center/press-releases/finrez-2025/", "KMG, 2025 results"),
+    ("KazMunayGas, Financial results for the first half of 2026 (press release, 18 August 2026)",
+     "https://www.kmg.kz/en/press-center/press-releases/fr-6-26/", "first-half 2026 results"),
+    ("KazMunayGas, Financial results for 2024 (press release, 2025)",
+     "https://www.kmg.kz/en/press-center/press-releases/finrez-2024/", "2024 results"),
+]
+
+KMG = dict(
+    slug="kazmunaygas-2026",
+    logos=[("kazmunaygas", "KazMunayGas")],
+    sector="Mining & energy",
+    url="research/kazmunaygas-2026.html",
+    tag="Companies",
+    kind="Company note",
+    title="A Higher Oil Price, Less Oil: KazMunayGas in 2025-2026",
+    date="1 Nov 2026", date_long="1 November 2026", iso="2026-11-01",
+    line="Net profit rose 69% in the first half of 2026 as Brent averaged $92, while oil output fell 4.6%.",
+    summary=("KazMunayGas (KMG), Kazakhstan's national oil and gas company, produced 26.2 million tonnes of oil and condensate "
+             "in 2025, 10% more than in 2024. Revenue rose 12.5%, to ₸9.37 trillion, mostly because the tenge weakened, while "
+             "net profit slipped 2%, to ₸1.07 trillion, as the oil price fell 14%. In the first half of 2026 Brent averaged "
+             "$92 a barrel and net profit rose 69%, even though output fell 4.6% when the Caspian Pipeline Consortium limited "
+             "how much oil it accepted. On the stock exchange KMG costs about 20 times its 2025 profit, more than Kazatomprom, Kaspi or Halyk, "
+             "but very few of its shares trade."),
+    art=columns([("Net profit", GREY, [v / 1000 for v in M_NP])], M_YEARS, w=300, h=150, hi=2, top=1.3, fmt="{:.2f}",
+                desc="KazMunayGas net profit, ₸ trillion: 0.93 in 2023, 1.09 in 2024, 1.07 in 2025"),
+    art_title="Net profit, ₸ trn",
+    pdf="reports/kazmunaygas-2026.pdf", pages=2,
+    data="data/kazmunaygas-2023-2026",
+    og_num="+69%", og_cap="net profit in 1H 2026, with Brent at $92 and output down 4.6%",
+    og_chart=columns([("Brent", GREY, M_BRENT + [M_H1["brent"][1]])], M_YEARS + ["1H 2026"], w=420, h=260, hi=3, top=110, fmt="{:.0f}"),
+)
+KMG["feat"] = (M_YEARS, "KazMunayGas revenue and net profit, ₸ trillion",
+               columns([("Revenue", GREY, [v / 1000 for v in M_REV]), ("Net profit", CHART_HI, [v / 1000 for v in M_NP])], M_YEARS,
+                       w=520, h=270, top=11, fmt="{:.2f}", desc="Revenue and net profit 2023 to 2025"),
+               "KazMunayGas results releases")
+
+data_files(KMG["data"], "KazMunayGas key figures, 2023 to first half of 2026",
+           ["Sources: KazMunayGas IFRS results releases for 2024, 2025 and the first half of 2026.",
+            "Money in ₸ billion. Net profit includes KMG's share in the profit of joint ventures and associates (Tengizchevroil and others).",
+            "Production is oil and gas condensate net to KMG, in thousand tonnes. Net debt is at the end of each period.",
+            f"Valuation: KASE closing price on {PRICE_DATE}; shares = ₸350 billion of dividends for 2025 divided by ₸573.66 per share."],
+           [("Annual", ["Indicator", *M_YEARS],
+             [["Revenue, ₸ billion", *M_REV], ["Net profit, ₸ billion", *M_NP], ["EBITDA, ₸ billion", *M_EBITDA],
+              ["Free cash flow, ₸ billion", *M_FCF], ["Net debt at year end, ₸ billion", *M_NETDEBT],
+              ["Oil and condensate production, thousand tonnes", *M_OIL], ["Dated Brent, $/bbl", *M_BRENT],
+              ["Average exchange rate, ₸ per $", *M_FX]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Revenue, ₸ billion", *M_H1["rev"]], ["Net profit, ₸ billion", *M_H1["np"]], ["EBITDA, ₸ billion", *M_H1["ebitda"]],
+              ["Free cash flow, ₸ billion", *M_H1["fcf"]], ["Oil and condensate production, thousand tonnes", *M_H1["oil"]],
+              ["Dated Brent, $/bbl", *M_H1["brent"]], ["Average exchange rate, ₸ per $", *M_H1["fx"]]]),
+            ("Valuation", ["Item", "Value"],
+             [["KASE closing price, ₸", VAL["KMGZ"]["price"]], ["Shares, million", round(VAL["KMGZ"]["shares"], 1)],
+              ["Market value, ₸ billion", round(VAL["KMGZ"]["mv"])], ["Price to 2025 net profit", round(VAL["KMGZ"]["pe"], 1)],
+              ["Price to net profit, July 2025-June 2026", round(VAL["KMGZ"]["mv"] / M_LTM, 1)],
+              ["Dividend yield, %", round(VAL["KMGZ"]["dy"], 1)]])])
+
+KMG["notes"] = '''<ul class="notes">
+<li>All company figures come from KazMunayGas's own IFRS results releases, listed under Sources. Net profit includes KMG's share in the profit of joint ventures and associates, the largest of which is Tengizchevroil.</li>
+<li>Production is oil and gas condensate net to KMG, which counts its share of each field.</li>
+<li>Valuation uses the closing price on the Kazakhstan Stock Exchange on 30 October 2026. The number of shares, 610 million, is derived from the 2025 dividend: ₸350 billion in total, ₸573.66 per share. Profit for July 2025 to June 2026 is 2025 profit minus the first half of 2025 plus the first half of 2026. These calculations and percentage changes are the author's.</li>
+</ul>'''
+
+kmg_sections = f'''<h2>Key findings</h2><ol>
+<li>Oil and condensate output rose 10% in 2025, to 26.2 million tonnes, in the year the new plant at the Tengiz field started up.</li>
+<li>Revenue grew 12.5%, to ₸9.37 trillion, mostly because the tenge weakened by 11% against the dollar. Brent fell 14%, and net profit slipped 2%, to ₸1.07 trillion.</li>
+<li>In the first half of 2026 Brent averaged $92.31 and net profit rose 69%, to ₸904 billion, while output fell 4.6%.</li>
+<li>Net debt fell from ₸1.65 trillion at the end of 2023 to ₸375 billion at the end of 2025. The dividend for 2025 was ₸350 billion.</li></ol>
+{fig(1, "Revenue and net profit, ₸ trillion",
+     columns([("Revenue", GREY, [v / 1000 for v in M_REV]), ("Net profit", CHART_HI, [v / 1000 for v in M_NP])], M_YEARS,
+             top=11, fmt="{:.2f}", desc="Revenue 8.32, 8.33 and 9.37 trillion tenge; net profit 0.93, 1.09 and 1.07"),
+     src_link(0, SRC_KMG) + "; " + src_link(2, SRC_KMG), KMG["data"])}
+<h2>What KMG owns</h2>
+<p>KMG is the state's holding company for oil and gas. It runs some fields itself, such as Ozenmunaigas and Embamunaigas, and holds minority stakes in the three large projects run by foreign companies: 20% of Tengizchevroil, 16.88% of Kashagan and 10% of Karachaganak. It also owns 90% of KazTransOil, the main pipeline operator, 20.75% of the Caspian Pipeline Consortium, and refineries in Kazakhstan and Romania.</p>
+<p>Because of this structure, a large part of KMG's income comes as a share of other companies' profit. In 2025 that share rose 47%, to ₸781 billion, mainly from Tengizchevroil, and the cash dividends KMG received from these companies rose 41%, to ₸985 billion.</p>
+<h2>2025: more oil, a cheaper barrel</h2>
+<p>Production of oil and condensate rose 10%, to 26.2 million tonnes, and gas production rose 20%. Brent averaged $69.10 a barrel, 14% less than in 2024. In tenge the price fell less, because the tenge weakened from 469 to 521 per dollar. Revenue grew 12.5%, but net profit fell 2%, to ₸1,072 billion, which KMG explains by exchange-rate losses, higher production costs and higher depreciation.</p>
+<p>The balance sheet improved. Gross debt fell 11%, to ₸3.52 trillion, while cash and deposits reached ₸3.15 trillion, so net debt dropped to ₸375 billion. KMG paid ₸300 billion of dividends for 2024 and approved ₸350 billion, or ₸573.66 a share, for 2025.</p>
+<div class="table-title">Table 1. KazMunayGas key figures</div>
+{table(["", *M_YEARS, "1H 2025", "1H 2026"],
+       [["Dated Brent, $/bbl", *[f"{v:.2f}" for v in M_BRENT], *[f"{v:.2f}" for v in M_H1["brent"]]],
+        ["Tenge per US dollar", *[f"{v:.0f}" for v in M_FX], *[f"{v:.0f}" for v in M_H1["fx"]]],
+        ["Oil and condensate output, thousand t", *map(n0, M_OIL), *map(n0, M_H1["oil"])],
+        ["**Revenue, ₸ billion", *map(n0, M_REV), *map(n0, M_H1["rev"])],
+        ["EBITDA, ₸ billion", *map(n0, M_EBITDA), *map(n0, M_H1["ebitda"])],
+        ["**Net profit, ₸ billion", *map(n0, M_NP), *map(n0, M_H1["np"])],
+        ["Free cash flow, ₸ billion", *map(n0, M_FCF), *map(n0, M_H1["fcf"])],
+        ["Net debt at period end, ₸ billion", *map(n0, M_NETDEBT), "", "983"]])}
+<p class="table-note">Sources: {src_link(0, SRC_KMG)}; {src_link(1, SRC_KMG)}; {src_link(2, SRC_KMG)}.</p>
+<h2>2026: the price did the work</h2>
+<p>In the first six months of 2026 Brent averaged $92.31, 28% more than a year earlier. Revenue rose 24%, to ₸5.57 trillion, and net profit rose 69%, to ₸904 billion. Volumes moved the other way: oil output fell 4.6%, which KMG links to restrictions on how much oil the Caspian Pipeline Consortium accepted from Tengizchevroil. A stronger tenge, at 486 per dollar against 512, also took some revenue away.</p>
+{fig(2, "Average Brent price, $ per barrel",
+     columns([("Brent", GREY, M_BRENT + [M_H1["brent"][1]])], M_YEARS + ["1H 2026"], hi=3, top=110, fmt="{:.2f}",
+             desc="Brent averaged 82.64 dollars in 2023, 80.76 in 2024, 69.10 in 2025 and 92.31 in the first half of 2026"),
+     src_link(1, SRC_KMG) + "; " + src_link(0, SRC_KMG) + "; " + src_link(2, SRC_KMG), KMG["data"])}
+<p>Net debt rose to ₸983 billion at the end of June, mainly because KMG used cash to buy bonds of Samruk-Kazyna, the state fund that owns it. Capital spending in cash rose 61%, to ₸422 billion, as KMG paid advances for a gas separation plant at Tengiz and a new gas processing plant in Zhanaozen.</p>
+<h2>Where China comes in</h2>
+<p>China appears in KMG's reports in four ways. KMG owns half of Kazakhstan-China Pipeline LLP, which carries oil east to China, and dividends from it rose in 2025. In October 2025 KMG borrowed in Chinese yuan under a new bond programme: CNY1.25 billion of five-year bonds at a coupon of 2.95%, listed in Hong Kong and Astana. Most of its debt is still in dollars, 69% at the end of June 2026.</p>
+<p>Chinese companies are also becoming partners in exploration and contractors in construction. In 2025 KMG signed agreements with CNOOC on the Zhylyoi project and with Sinopec on the Berezovskiy block, and in December it hired a consortium led by China Petroleum Pipeline Engineering, with CITIC Construction, to build two 210-kilometre pipelines for the petrochemical cluster near Tengiz.</p>
+<h2>Valuation</h2>
+<p>KMG's shares closed at ₸36,052.80 on the Kazakhstan Stock Exchange on {PRICE_DATE}. With about 610 million shares, the market value is ₸{VAL['KMGZ']['mv'] / 1000:.1f} trillion, or ${VAL['KMGZ']['usd']:.1f} billion (Table 2). That is {VAL['KMGZ']['pe']:.1f} times 2025 net profit, or {VAL['KMGZ']['mv'] / M_LTM:.1f} times profit for the twelve months to June 2026. The dividend for 2025 gives a yield of {VAL['KMGZ']['dy']:.1f}%.</p>
+<p>That is a higher multiple than for the other large Kazakh companies on this site: Kazatomprom trades at {VAL['KZAP']['pe']:.1f} times its 2025 profit, Kaspi at {VAL['KSPI']['pe']:.1f} and Halyk at {VAL['HSBK']['pe']:.1f}. The price may not mean much, though. On 30 October only 594 KMG shares changed hands, and over the past year about 1.6 million, roughly 0.3% of all shares. When so few shares trade, a handful of buyers can set the price.</p>
+{val_table('KMGZ', 2, [["Price to profit, July 2025-June 2026", f"{VAL['KMGZ']['mv'] / M_LTM:.1f}"],
+                       ["Shares traded on 30 October 2026", "594"]])}
+<p class="table-note">Shares in issue derived from the 2025 dividend (₸350 billion at ₸573.66 a share). Sources: KASE; {src_link(1, SRC_KMG)}.</p>
+<h2>Risks</h2><ol>
+<li>The 2026 profit came from a high oil price. If Brent falls back towards the 2025 average, so will profit.</li>
+<li>Most export oil from the large fields leaves through the Caspian Pipeline Consortium, and limits on that route already cut output in 2026.</li>
+<li>A stronger tenge lowers revenue in tenge. In the first half of 2026 the tenge averaged 486 per dollar, about 5% stronger than a year earlier.</li>
+<li>Spending on petrochemicals and gas processing is rising, which will reduce free cash flow and possibly dividends.</li>
+<li>Only a small part of the shares trades, so the market price is a weak guide to value.</li></ol>
+{view("view_kazmunaygas.txt")}'''
+
+report(KMG, kmg_sections,
+       [("Output, 2025", "26.2 mn t"), ("Revenue, 2025", "₸9.37 trn"), ("Net profit, 1H 2026", "+69%"),
+        ("Net debt, end-2025", "₸375 bn"), ("Price to 2025 profit", f"{VAL['KMGZ']['pe']:.1f}")],
+       SRC_KMG + SRC_PRICES[:1], disclaimer=True)
+
+# Air Astana Group (Air Astana and FlyArystan): results releases for 2024, 2025 and the first half of 2026 (US$ million)
+A_YEARS = ["2023", "2024", "2025"]
+A_REV = [1175.0, 1309.1, 1453.9]        # revenue and other income, statutory
+A_PAT = [68.7, 52.8, 13.6]              # profit for the year, statutory
+A_PAX = [8.1, 9.0, 9.7]                 # passengers carried, million
+A_CHINA = [("2024", 16), ("2025", 24), ("Summer 2026", 51)]   # weekly flights to China
+A_H1 = dict(rev=(658.2, 763.9), pat=(10.7, -21.2), rask=(6.41, 7.43), cask=(5.97, 7.30), pax=(4.50, 4.39),
+            ebitdar=(157.0, 141.7))
+A_LTM = A_PAT[2] - A_H1["pat"][0] + A_H1["pat"][1]
+
+SRC_AA = [
+    ("Air Astana, Results for the fourth quarter and full year ended 31 December 2025 (13 March 2026)",
+     "https://ir.airastana.com/media/8de80cf11108b40/air-astana-fy2025-results_eng_1103.pdf", "Air Astana, 2025 results"),
+    ("Air Astana, Results for the second quarter and six months ended 30 June 2026 (5 August 2026)",
+     "https://ir.airastana.com/media/8def2b263bf26cb/q2_2026_statement_eng.pdf", "first-half 2026 results"),
+    ("Air Astana, Financial and operational results for 2024 (March 2025)",
+     "https://ir.airastana.com/media/8dd62b407588c5b/fy24-financial-and-operational-results-release_eng.pdf", "2024 results"),
+    ("Air Astana, Air Astana and China Southern Airlines sign Joint Venture Agreement (30 October 2026)",
+     "https://ir.airastana.com/en/about-us/company-news/air-astana-and-china-southern-airlines-sign-joint-venture-agreement/", "joint venture release"),
+]
+
+AA = dict(
+    slug="air-astana-2026",
+    logos=[("air-astana.png", "Air Astana")],
+    sector="Transport",
+    url="research/air-astana-2026.html",
+    tag="Companies",
+    kind="Company note",
+    title="More Flights to China, Thinner Margins: Air Astana in 2025-2026",
+    date="1 Nov 2026", date_long="1 November 2026", iso="2026-11-01",
+    line="Revenue rose 16% in the first half of 2026, but costs rose faster and the group lost $21 million.",
+    summary=("Air Astana Group, which flies as Air Astana and the low-cost FlyArystan, earned $1.45 billion of revenue in 2025, "
+             "11% more than in 2024, but its profit fell from $52.8 million to $13.6 million. Faulty Pratt & Whitney engines "
+             "grounded up to 13 aircraft in the peak season. China has become its fastest-growing market: weekly flights rose "
+             "from 16 in 2024 to as many as 51 in summer 2026, and on 30 October 2026 it signed a joint venture with China "
+             "Southern Airlines. In the first half of 2026 revenue grew 16%, but cost per seat-kilometre grew 22% and the group "
+             "made a loss of $21.2 million."),
+    art=columns([("Weekly flights to China", GREY, [v for _, v in A_CHINA])], [l for l, _ in A_CHINA], w=300, h=150, hi=2, top=60,
+                fmt="{:.0f}", desc="Air Astana Group weekly flights to China: 16 in 2024, 24 in 2025, up to 51 in summer 2026"),
+    art_title="Weekly flights to China",
+    pdf="reports/air-astana-2026.pdf", pages=2,
+    data="data/air-astana-2023-2026",
+    og_num="51", og_cap="weekly flights to China in summer 2026, up from 16 in 2024",
+    og_chart=columns([("Weekly flights", GREY, [v for _, v in A_CHINA])], [l for l, _ in A_CHINA], w=420, h=260, hi=2, top=60, fmt="{:.0f}"),
+)
+AA["feat"] = (None, "Air Astana Group weekly flights to China",
+              columns([("Weekly flights", GREY, [v for _, v in A_CHINA])], [l for l, _ in A_CHINA], w=520, h=270, hi=2, top=60,
+                      fmt="{:.0f}", desc="16 in 2024, 24 in 2025, up to 51 in summer 2026"), "Air Astana results releases")
+
+data_files(AA["data"], "Air Astana Group key figures, 2023 to first half of 2026",
+           ["Sources: Air Astana results releases for 2024, 2025 and the first half of 2026, and the joint venture release of 30 October 2026.",
+            "Money in US$ million. Revenue and profit are statutory IFRS figures; the company's own growth rates exclude a one-off item of $4.2 million in 2024.",
+            "RASK and CASK are revenue and cost per available seat-kilometre, in US cents. Weekly flights to China for summer 2026 are the peak schedule ('up to').",
+            f"Valuation: KASE closing price on {PRICE_DATE}; shares = equity divided by book value per share at 31 December 2025."],
+           [("Annual", ["Indicator", *A_YEARS],
+             [["Revenue and other income, $ million", *A_REV], ["Profit for the year, $ million", *A_PAT],
+              ["Passengers, million", *A_PAX]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Revenue and other income, $ million", *A_H1["rev"]], ["Profit after tax, $ million", *A_H1["pat"]],
+              ["EBITDAR, $ million", *A_H1["ebitdar"]], ["RASK, US cents", *A_H1["rask"]], ["CASK, US cents", *A_H1["cask"]],
+              ["Passengers, million", *A_H1["pax"]]]),
+            ("China", ["Period", "Weekly flights to China"], [list(r) for r in A_CHINA])])
+
+AA["notes"] = '''<ul class="notes">
+<li>All company figures come from Air Astana's own results releases, listed under Sources. Money is in US dollars, the group's reporting currency. Revenue and profit are the statutory figures; the company's own growth rates exclude a one-off item of $4.2 million in 2024, so they differ slightly from those calculated here.</li>
+<li>RASK and CASK are revenue and cost per available seat-kilometre. EBITDAR is the company's measure of profit before interest, tax, depreciation and aircraft rent.</li>
+<li>Valuation uses the closing price on the Kazakhstan Stock Exchange on 30 October 2026. The number of shares, about 360 million, is total equity divided by book value per share at the end of 2025. Profit for July 2025 to June 2026 and percentage changes are calculated by the author.</li>
+</ul>'''
+
+aa_sections = f'''<h2>Key findings</h2><ol>
+<li>Revenue rose 11% in 2025, to $1.45 billion, but profit fell from $52.8 million to $13.6 million.</li>
+<li>Faulty Pratt &amp; Whitney engines forced 22 unscheduled removals in 2025 and grounded up to 13 aircraft in the peak season. The company puts the cost at $42.3 million of EBITDAR.</li>
+<li>China is the fastest-growing market: from 16 weekly flights in 2024 to as many as 51 in summer 2026. On 30 October 2026 Air Astana signed the first airline joint venture between Kazakhstan and China, with China Southern.</li>
+<li>In the first half of 2026 revenue per seat-kilometre rose 16% but cost per seat-kilometre rose 22%, and the group lost $21.2 million.</li></ol>
+{fig(1, "Revenue and other income, $ million",
+     columns([("Revenue", GREY, A_REV)], A_YEARS, hi=2, top=1700, fmt="{:,.0f}",
+             desc="Revenue 1,175 million dollars in 2023, 1,309 in 2024 and 1,454 in 2025"),
+     src_link(0, SRC_AA) + "; " + src_link(2, SRC_AA), AA["data"])}
+<h2>Two airlines, one group</h2>
+<p>The group has two brands. Air Astana is the full-service carrier, with long-haul flights to Europe and Asia; FlyArystan, launched in 2019, is the low-cost airline, mostly flying inside Kazakhstan. At the end of 2025 the group had 62 aircraft, 34 at Air Astana and 28 at FlyArystan, and it carried 9.7 million passengers, 8% more than a year earlier. Its shares are listed in Astana, Almaty and London.</p>
+<h2>2025: more passengers, less profit</h2>
+<p>Revenue grew 11%, to $1,454 million, and capacity measured in available seat-kilometres grew 14%. But costs grew faster. Most of the group's Airbus A320 family aircraft use Pratt &amp; Whitney engines, which have had a known defect since 2023. In 2025 the group also had 22 unscheduled engine removals for other design problems, which grounded up to 13 aircraft when demand was highest. Staff hired for the summer and fixed maintenance costs were spread over fewer flights.</p>
+<p>The weaker tenge hurt FlyArystan, which earns most of its money in tenge; the company estimates the cost at $18.4 million. Profit for the year fell to $13.6 million, and in the fourth quarter the group made a loss of $17.7 million. Cash stayed high at $473 million, and the group paid $37.2 million of dividends during the year.</p>
+<h2>China is where the growth is</h2>
+<p>Weekly flights to China rose from 16 in 2024 to 24 in 2025, across six destinations. In 2026 Air Astana added Almaty-Shanghai and Astana-Guangzhou, and FlyArystan added Aktau-Urumqi, Almaty-Xi'an and Almaty-Chongqing. By summer the group flew up to 51 times a week to seven Chinese cities, with nine planned by the end of the year, and its capacity to China in the second quarter was 81% higher than a year earlier (Figure 2).</p>
+{fig(2, "Air Astana Group weekly flights to China",
+     columns([("Weekly flights", GREY, [v for _, v in A_CHINA])], [l for l, _ in A_CHINA], hi=2, top=60, fmt="{:.0f}",
+             desc="16 weekly flights in 2024, 24 in 2025 and up to 51 in summer 2026"),
+     src_link(0, SRC_AA) + "; " + src_link(1, SRC_AA), AA["data"])}
+<p>The partner is China Southern Airlines. A codeshare between the two, covering 50 weekly flights, was agreed in 2025, and on 30 October 2026 they signed a joint venture, the first between airlines of the two countries. In peak season Air Astana flies up to 36 return flights a week to Urumqi, Beijing, Guangzhou and Shanghai, and China Southern up to 29 from Urumqi, Beijing, Guangzhou and Xi'an to Almaty and Astana. A separate <a href="china-southern-2026.html">note on China Southern</a> looks at the Chinese side.</p>
+<h2>2026: revenue up, costs up more</h2>
+<p>In the first half of 2026 revenue rose 16%, to $764 million, with capacity almost unchanged, because the group moved aircraft to international routes and raised fares. Cost per seat-kilometre rose faster, by 22%. In the second quarter fuel bought at foreign airports cost 98% more than a year earlier, while conflict in the Gulf disrupted flying in the region, and the tenge was 7% stronger against the dollar, which makes local costs bigger in dollars. The group lost $21.2 million in the half, against a profit of $10.7 million a year earlier.</p>
+{fig(3, "Revenue and cost per available seat-kilometre, US cents",
+     columns([("Revenue (RASK)", GREY, list(A_H1["rask"])), ("Cost (CASK)", CHART_HI, list(A_H1["cask"]))], ["1H 2025", "1H 2026"],
+             w=480, h=250, top=9, fmt="{:.2f}", desc="RASK 6.41 and 7.43 cents; CASK 5.97 and 7.30 cents"),
+     src_link(1, SRC_AA), AA["data"])}
+<p>The company says the engine problem is turning: groundings were about 60% lower than a year earlier, and it expects none in summer 2027. Its medium-term aim is an EBITDAR margin in the mid-to-high 20s and 86 aircraft by 2030. Results for the third quarter are due on 12 November 2026.</p>
+<div class="table-title">Table 1. Air Astana Group key figures</div>
+{table(["", *A_YEARS, "1H 2025", "1H 2026"],
+       [["**Revenue, $ million", *[f"{v:,.0f}" for v in A_REV], *[f"{v:,.0f}" for v in A_H1["rev"]]],
+        ["**Profit, $ million", *[f"{v:.1f}" for v in A_PAT], *[f"{v:.1f}".replace("-", "−") for v in A_H1["pat"]]],
+        ["Passengers, million", *[f"{v:.1f}" for v in A_PAX], *[f"{v:.2f}" for v in A_H1["pax"]]],
+        ["RASK, US cents", "", "6.75", "6.60", *[f"{v:.2f}" for v in A_H1["rask"]]],
+        ["CASK, US cents", "", "6.10", "6.20", *[f"{v:.2f}" for v in A_H1["cask"]]]])}
+<p class="table-note">Statutory IFRS figures. Sources: {src_link(0, SRC_AA)}; {src_link(1, SRC_AA)}; {src_link(2, SRC_AA)}.</p>
+<h2>Valuation</h2>
+<p>Air Astana's shares closed at ₸699.87 on the Kazakhstan Stock Exchange on {PRICE_DATE}, which values the group at about ${VAL['AIRA']['mv'] * 1000:.0f} million (Table 2). That is {VAL['AIRA']['pe']:.0f} times its small 2025 profit and {VAL['AIRA']['pb']:.1f} times book value. Over the twelve months to June 2026 the group made a loss of ${-A_LTM:.1f} million, so a price-to-earnings ratio on recent profit cannot be calculated. Investors are paying for the expected recovery in margins, not for current earnings.</p>
+{val_table('AIRA', 2, [["Profit, July 2025-June 2026", f"loss of ${-A_LTM:.1f} million"]])}
+<p class="table-note">Shares in issue derived from equity and book value per share at 31 December 2025. Sources: KASE; {src_link(0, SRC_AA)}.</p>
+<h2>Risks</h2><ol>
+<li>The engine problem is not over: the company expects the backlog of engines waiting for repair to last through 2028.</li>
+<li>Fuel bought abroad has become much more expensive, and the group hedges only part of it.</li>
+<li>Exchange rates work both ways: a weak tenge hurts FlyArystan's revenue, a strong tenge raises costs in dollars.</li>
+<li>Leverage is rising. Net debt was 2.1 times EBITDAR in June 2026, against 1.3 times a year earlier.</li></ol>
+{view("view_air_astana.txt")}'''
+
+report(AA, aa_sections,
+       [("Revenue, 2025", "$1.45 bn"), ("Profit, 2025", "$13.6 mn"), ("Weekly flights to China", "up to 51"),
+        ("Revenue, 1H 2026", "+16%"), ("Result, 1H 2026", "−$21.2 mn")],
+       SRC_AA + SRC_PRICES[:1], disclaimer=True)
+
+# China Southern Airlines (HKEX: 1055): annual results 2024 and 2025, interim report 2026 (IFRS, RMB billion)
+C_YEARS = ["2023", "2024", "2025"]
+C_REV = [159.93, 174.22, 182.26]
+C_NP = [-4.140, -1.769, 0.855]          # profit attributable to equity shareholders
+C_INTL_REV = [35.22, 50.03, 57.60]      # revenue from international routes and services
+C_INTL_PAX = [9.09, 17.65, 21.10]       # international passengers, million
+C_PAX = [142.20, 164.73, 173.73]        # all passengers, million
+C_H1 = dict(rev=(86.29, 94.68), np=(-1.534, -3.699), fuel=(25.33, 34.89), intl_pax_rev=(17.55, 22.38))
+
+SRC_CS = [
+    ("China Southern Airlines, Annual results announcement for the year ended 31 December 2025 (HKEXnews, 30 March 2026)",
+     "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0330/2026033003754.pdf", "China Southern, 2025 results"),
+    ("China Southern Airlines, Interim Report 2026 (HKEXnews, 28 August 2026)",
+     "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0828/2026082803260.pdf", "Interim Report 2026"),
+    ("China Southern Airlines, Annual results announcement for the year ended 31 December 2024 (HKEXnews, 26 March 2025)",
+     "https://www1.hkexnews.hk/listedco/listconews/sehk/2025/0326/2025032602068.pdf", "2024 results"),
+]
+
+CS = dict(
+    slug="china-southern-2026",
+    logos=[("china-southern", "China Southern Airlines")],
+    sector="Transport",
+    url="research/china-southern-2026.html",
+    tag="Companies",
+    kind="Company note",
+    title="Flying Abroad, Paying for Fuel: China Southern Airlines in 2025-2026",
+    date="1 Nov 2026", date_long="1 November 2026", iso="2026-11-01",
+    line="International revenue grew 64% in two years. In the first half of 2026 fuel cost 38% more and the airline lost RMB3.7 billion.",
+    summary=("China Southern Airlines, China's largest airline by fleet with 973 aircraft, returned to profit in 2025: RMB855 million "
+             "for shareholders, after losses in 2023 and 2024. Most of the growth came from international routes, whose revenue "
+             "rose from RMB35 billion in 2023 to RMB58 billion in 2025. In the first half of 2026 fuel cost 38% more and the "
+             "airline lost RMB3.7 billion. It flies up to 29 times a week to Almaty and Astana and on 30 October 2026 signed a "
+             "joint venture with Air Astana."),
+    art=columns([("International passengers", GREY, C_INTL_PAX)], C_YEARS, w=300, h=150, hi=2, top=25, fmt="{:.1f}",
+                desc="China Southern international passengers, million: 9.1 in 2023, 17.6 in 2024, 21.1 in 2025"),
+    art_title="International passengers, mn",
+    pdf="reports/china-southern-2026.pdf", pages=2,
+    data="data/china-southern-2023-2026",
+    og_num="+38%", og_cap="jet fuel cost in 1H 2026, as international revenue kept growing",
+    og_chart=columns([("International revenue", GREY, C_INTL_REV)], C_YEARS, w=420, h=260, hi=2, top=68, fmt="{:.1f}"),
+)
+CS["feat"] = (C_YEARS, "China Southern revenue from international routes, RMB billion",
+              columns([("International revenue", GREY, C_INTL_REV)], C_YEARS, w=520, h=270, hi=2, top=68, fmt="{:.1f}",
+                      desc="35.2, 50.0 and 57.6 billion yuan"), "China Southern Airlines annual results")
+
+data_files(CS["data"], "China Southern Airlines key figures, 2023 to first half of 2026",
+           ["Sources: China Southern Airlines annual results announcements for 2024 and 2025 and Interim Report 2026 (IFRS), HKEXnews.",
+            "Money in RMB billion. Profit is attributable to equity shareholders of the company.",
+            "International revenue is the company's geographical split: traffic to or from overseas markets and services performed abroad.",
+            f"Valuation: Hong Kong H-share closing price on {PRICE_DATE} applied to all 18.12 billion A and H shares; HK$ converted to RMB at {HKD_CNY:.3f}."],
+           [("Annual", ["Indicator", *C_YEARS],
+             [["Operating revenue, RMB billion", *C_REV], ["Profit attributable to shareholders, RMB billion", *C_NP],
+              ["International revenue, RMB billion", *C_INTL_REV], ["Passengers, million", *C_PAX],
+              ["International passengers, million", *C_INTL_PAX]]),
+            ("First half", ["Indicator", "1H2025", "1H2026"],
+             [["Operating revenue, RMB billion", *C_H1["rev"]], ["Profit attributable to shareholders, RMB billion", *C_H1["np"]],
+              ["Jet fuel costs, RMB billion", *C_H1["fuel"]], ["International passenger revenue, RMB billion", *C_H1["intl_pax_rev"]]])])
+
+CS["notes"] = '''<ul class="notes">
+<li>All company figures come from China Southern's IFRS results announcements and Interim Report 2026, listed under Sources. Money is in Chinese yuan (RMB). Profit is attributable to the company's equity shareholders. The 2023 loss of RMB4.14 billion is the IFRS figure; under Chinese accounting standards the company reported a loss of about RMB4.2 billion.</li>
+<li>International revenue follows the company's geographical split: traffic with origin or destination outside China, Hong Kong, Macau and Taiwan, plus services performed abroad.</li>
+<li>The company has A shares in Shanghai and H shares in Hong Kong. Valuation applies the Hong Kong price to all 18.12 billion shares; A shares usually trade at a different price, so this is an approximation. Ratios and percentage changes are calculated by the author.</li>
+</ul>'''
+
+cs_sections = f'''<h2>Key findings</h2><ol>
+<li>After losses of RMB4.1 billion in 2023 and RMB1.8 billion in 2024, China Southern earned RMB855 million for shareholders in 2025. Revenue rose 4.6%, to RMB182 billion.</li>
+<li>International routes drove the growth. Their revenue rose from RMB35.2 billion in 2023 to RMB57.6 billion in 2025, and international passengers from 9.1 million to 21.1 million.</li>
+<li>In the first half of 2026 jet fuel cost 38% more, revenue grew 9.7%, and the loss widened to RMB3.7 billion.</li>
+<li>China Southern flies up to 29 times a week to Almaty and Astana and signed a joint venture with Air Astana on 30 October 2026.</li></ol>
+{fig(1, "Revenue from international routes, RMB billion",
+     columns([("International revenue", GREY, C_INTL_REV)], C_YEARS, hi=2, top=68, fmt="{:.1f}",
+             desc="International revenue 35.2 billion yuan in 2023, 50.0 in 2024 and 57.6 in 2025"),
+     src_link(0, SRC_CS) + "; " + src_link(2, SRC_CS), CS["data"])}
+<h2>A big airline with a thin margin</h2>
+<p>China Southern is based in Guangzhou and is one of China's three large state-controlled airlines. At the end of June 2026 it had 973 aircraft, including 11 Chinese-built C919s and 40 C909 regional jets. In 2025 it carried 173.7 million passengers, eighteen times as many as Air Astana.</p>
+<p>The airline is large but earns little on each yuan of revenue. In 2025 its operating profit was RMB9.6 billion on revenue of RMB182 billion, and after interest, tax and the share of minority owners, RMB855 million was left for shareholders. Total liabilities were 84% of total assets, and the board paid no dividend for 2025.</p>
+<div class="table-title">Table 1. China Southern key figures, RMB billion</div>
+{table(["", *C_YEARS, "1H 2025", "1H 2026"],
+       [["**Operating revenue", *[f"{v:.1f}" for v in C_REV], *[f"{v:.1f}" for v in C_H1["rev"]]],
+        ["**Profit to shareholders", *[f"{v:.2f}".replace("-", "−") for v in C_NP], *[f"{v:.2f}".replace("-", "−") for v in C_H1["np"]]],
+        ["International revenue", *[f"{v:.1f}" for v in C_INTL_REV], "", ""],
+        ["Jet fuel costs", "", "55.0", "52.5", *[f"{v:.1f}" for v in C_H1["fuel"]]],
+        ["Passengers, million", *[f"{v:.1f}" for v in C_PAX], "", ""]])}
+<p class="table-note">IFRS figures. Sources: {src_link(0, SRC_CS)}; {src_link(1, SRC_CS)}; {src_link(2, SRC_CS)}.</p>
+<h2>Growth came from abroad</h2>
+<p>Domestic revenue was flat in 2025, at RMB122 billion, and the average fare per kilometre at home fell 4%. International revenue grew 15%, to RMB57.6 billion, and the number of international passengers rose 20%, to 21.1 million (Figure 2). The company says flights on Belt and Road routes, which include Central Asia, rose 15.4% in 2025.</p>
+{fig(2, "International passengers, million",
+     columns([("International passengers", GREY, C_INTL_PAX)], C_YEARS, hi=2, top=25, fmt="{:.1f}",
+             desc="9.1 million in 2023, 17.6 million in 2024 and 21.1 million in 2025"),
+     src_link(0, SRC_CS) + "; " + src_link(2, SRC_CS), CS["data"])}
+<p>The trend continued in the first half of 2026: international passenger revenue grew 27%, to RMB22.4 billion, and international cargo revenue 20%.</p>
+<h2>2026: fuel took the gain</h2>
+<p>Revenue rose 9.7% in the first half of 2026, to RMB94.7 billion. Jet fuel, the airline's largest cost, rose from RMB25.3 billion to RMB34.9 billion, which the company attributes to high and volatile oil prices. The loss attributable to shareholders grew from RMB1.5 billion to RMB3.7 billion, and no interim dividend was declared.</p>
+{fig(3, "Revenue and jet fuel costs, first half, RMB billion",
+     columns([("Revenue", GREY, list(C_H1["rev"])), ("Jet fuel", CHART_HI, list(C_H1["fuel"]))], ["1H 2025", "1H 2026"],
+             w=480, h=250, top=110, fmt="{:.1f}", desc="Revenue 86.3 and 94.7 billion yuan; jet fuel 25.3 and 34.9"),
+     src_link(1, SRC_CS), CS["data"])}
+<h2>China Southern in Kazakhstan</h2>
+<p>China Southern is the main Chinese airline on routes to Kazakhstan. In peak season it flies up to 29 return flights a week from Urumqi, Beijing, Guangzhou and Xi'an to Almaty and Astana. Its codeshare with Air Astana covers 50 weekly flights, and the joint venture signed on 30 October 2026 goes further: the airlines plan to align schedules, fares and rules on routes between the two countries. China Southern's executive vice president called it "a substantive achievement" under the Belt and Road framework. A separate <a href="air-astana-2026.html">note on Air Astana</a> looks at the Kazakh side.</p>
+<h2>Valuation</h2>
+<p>China Southern's Hong Kong shares closed at HK$2.72 on {PRICE_DATE}. Applying that price to all 18.1 billion shares gives a market value of about RMB{VAL['CS1055']['mv']:.0f} billion (Table 2), {VAL['CS1055']['pe']:.0f} times the small 2025 profit and {VAL['CS1055']['pb']:.2f} times book value. Because the airline lost money over the twelve months to June 2026, the price-to-earnings ratio says little; the market is valuing the fleet and an expected recovery.</p>
+{val_table('CS1055', 2, [["Dividend for 2025", "none"]])}
+<p class="table-note">Hong Kong price applied to all A and H shares; HK$ converted at {HKD_CNY:.3f} yuan. Book value is equity attributable to shareholders at 31 December 2025. Sources: Stock Analysis; National Bank of Kazakhstan; {src_link(0, SRC_CS)}.</p>
+<h2>Risks</h2><ol>
+<li>Fuel is the largest cost and most of it is bought in China at spot prices, which the company says it has no effective way to hedge.</li>
+<li>Average fares at home are falling, so growth depends on international routes.</li>
+<li>Debt is high: liabilities were 84% of assets at the end of 2025.</li>
+<li>New aircraft orders, including 137 Airbus A320neo family jets still subject to shareholder approval, will need more borrowing.</li></ol>
+{view("view_china_southern.txt")}'''
+
+report(CS, cs_sections,
+       [("Revenue, 2025", "RMB182 bn"), ("Profit, 2025", "RMB855 mn"), ("International revenue, 2023-25", "+64%"),
+        ("Jet fuel cost, 1H 2026", "+38%"), ("Result, 1H 2026", "−RMB3.7 bn")],
+       SRC_CS + SRC_PRICES[1:3], disclaimer=True)
 
 TRADE["feat"] = (YEARS, "Kazakhstan's exports to and imports from China, $ billion",
                  columns([("Exports", GREY, EXPORTS), ("Imports", CHART_HI, IMPORTS)], YEARS, w=520, h=270, top=22,
                          desc="Exports and imports, 2020 to 2025"), "Kazakh official statistics")
-REPORTS = [GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
+data_files("data/valuation-2026-10-30", f"Valuation of the companies covered, at the close on {PRICE_DATE}",
+           ["Prices: Kazakhstan Stock Exchange closing prices (Kaspi.kz, Halyk Bank, Kazatomprom, KazMunayGas, Air Astana) and Hong Kong closing prices via Stock Analysis (Geely, China Southern H shares).",
+            f"Exchange rates: National Bank of Kazakhstan official rates set on {PRICE_DATE}: US$1 = ₸{USD_KZT}, HK$1 = ₸{HKD_KZT}, RMB1 = ₸{CNY_KZT}.",
+            "Profit is 2025 net profit (Kazatomprom: adjusted profit to shareholders; Geely and China Southern: profit to shareholders). Book value only where used in the notes.",
+            "Dividend yield: Kaspi ₸1,000 a quarter annualised; Halyk ₸30.10 + ₸28.09; Kazatomprom ₸335 billion; KazMunayGas ₸573.66; Geely HK$0.50.",
+            "Share counts: Kaspi 190.03 million (Stock Analysis); Halyk 13,447.5 million issued less 2,533.8 million bought back (KASE); others as explained in each note."],
+           [("Valuation", ["Company", "Price", "Currency", "Shares, million", "Market value, billion", "Market value currency", "Market value, US$ billion",
+                           "P/E on 2025 profit", "P/B", "Dividend yield, %"],
+             [[v["name"], v["price"], v["cur"], round(v["shares"], 1), round(v["mv"], 2), v["unit"], round(v["usd"], 2), round(v["pe"], 1),
+               "" if v["pb"] is None else round(v["pb"], 2), "" if v["dy"] is None else round(v["dy"], 1)] for v in VAL.values()])])
+
+REPORTS = [KMG, AA, CS, GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
 
 
 # ---------- Home ----------
@@ -1148,9 +1624,18 @@ COVERAGE = [  # companies first, then countries; logo files are in assets/logos 
     dict(code="KAP", logo="kazatomprom", tag="Company · Kazakhstan", name="Kazatomprom", band="#3f5e6e",
          what="The world's largest uranium producer", r=KAP,
          stats=[("Production, 2025", "25,839 tU"), ("Sales to Asia, 2025", "56%"), ("Cost per lb, 1H 2026", "+37%")]),
+    dict(code="KMGZ", logo="kazmunaygas", tag="Company · Kazakhstan", name="KazMunayGas", band="#0f4c81",
+         what="The national oil and gas company", r=KMG,
+         stats=[("Output, 2025", "26.2 mn t"), ("Net profit, 1H 2026", "+69%"), ("Price to 2025 profit", f"{VAL['KMGZ']['pe']:.1f}")]),
+    dict(code="AIRA", logo="air-astana.png", tag="Company · Kazakhstan", name="Air Astana", band="#9a7b4f",
+         what="Air Astana and the low-cost FlyArystan", r=AA,
+         stats=[("Revenue, 2025", "$1.45 bn"), ("Weekly flights to China", "up to 51"), ("Result, 1H 2026", "−$21.2 mn")]),
     dict(code="0175", logo="geely", tag="Company · China", name="Geely Auto", band="#1d5fa8",
          what="Carmaker that owns Geely, Lynk & Co and Zeekr", r=GEELY,
          stats=[("Revenue, 2025", "RMB345 bn"), ("Exports, 1H 2026", "+158%"), ("Zeekr sales, 1H 2026", "+97%")]),
+    dict(code="1055", logo="china-southern", tag="Company · China", name="China Southern", band="#1c6fb5",
+         what="China's largest airline by fleet, Air Astana's partner", r=CS,
+         stats=[("Revenue, 2025", "RMB182 bn"), ("International revenue, 2023-25", "+64%"), ("Result, 1H 2026", "−RMB3.7 bn")]),
     dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
          what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
@@ -1167,7 +1652,7 @@ COVERAGE = [  # companies first, then countries; logo files are in assets/logos 
 
 
 def card(c):
-    mark = (f'<img src="assets/logos/{c["logo"]}.svg" alt="{escape(c["name"])} logo">' if c.get("logo")
+    mark = (f'<img src="assets/logos/{logo_src(c["logo"])}" alt="{escape(c["name"])} logo">' if c.get("logo")
             else f'<b style="color:{c["band"]}">{c["code"]}</b>')
     return (f'<a class="card" href="{c["r"]["url"]}"><div class="card-band" style="border-top-color:{c["band"]}">{mark}<span>{c["tag"]}</span></div>'
             f'<div class="card-body"><h3>{c["name"]}</h3><p class="muted">{c["what"]}</p>'
@@ -1180,16 +1665,16 @@ HERO_CREDIT = ('Photo: Kazakhstan Temir Zholy freight train between Joloman and 
                '<a href="https://commons.wikimedia.org/wiki/File:KTZ_TE33A_Joloman.jpg" rel="noopener">David Gubler</a>, '
                '<a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener">CC BY-SA 3.0</a>, cropped')
 # Key numbers from the reports; each links to the report it comes from.
-NUMBERS = [("$228.1 bn", "China-Russia trade, 2025", RU), ("$106.3 bn", "China-Central Asia trade, 2025", CA),
-           ("$34.1 bn", "Kazakhstan-China trade, 2025", TRADE), ("25,839 t", "Uranium mined by Kazatomprom, 2025", KAP),
-           ("+158%", "Geely exports, 1H 2026", GEELY), ("+60%", "Kaspi.kz revenue growth, 2025", KASPI)]
+NUMBERS = [("$228.1 bn", "China-Russia trade, 2025", RU), ("$34.1 bn", "Kazakhstan-China trade, 2025", TRADE),
+           ("26.2 mn t", "Oil produced by KazMunayGas, 2025", KMG), ("51", "Air Astana weekly flights to China, summer 2026", AA),
+           ("25,839 t", "Uranium mined by Kazatomprom, 2025", KAP), ("+158%", "Geely exports, 1H 2026", GEELY)]
 home = f'''<section class="masthead hero">
 <img class="hero-img" src="assets/photos/hero-ktz-2400.jpg" srcset="assets/photos/hero-ktz-1200.jpg 1200w, assets/photos/hero-ktz-2400.jpg 2400w"
  sizes="100vw" width="2400" height="767" alt="A long freight train of Kazakhstan Temir Zholy crossing the steppe, with hills behind">
 <div class="hero-shade"></div>
 <div class="wrap">
 <h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank, Kazatomprom and Geely, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
+<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank, Kazatomprom, KazMunayGas, Air Astana, Geely and China Southern Airlines, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
 </div>
 <p class="hero-credit">{HERO_CREDIT}</p>
 </section>
@@ -1227,6 +1712,10 @@ home = f'''<section class="masthead hero">
 <div class="block-head"><h2>Data</h2><a href="data.html">All data</a></div>
 <p class="block-lead">Spreadsheets with the numbers used in each report.</p>
 <div class="rows">{"".join(f'<div class="data-row"><div><b>{d["name"]}</b><span>{d["cover"]}</span></div><div class="data-links"><a href="{d["base"]}.xlsx" download>XLSX</a><a href="{d["base"]}.csv" download>CSV</a></div></div>' for d in [
+    dict(name="KazMunayGas key figures", cover="2023-1H2026 · revenue, profit, output, Brent, valuation", base=KMG["data"]),
+    dict(name="Air Astana Group key figures", cover="2023-1H2026 · revenue, profit, unit revenue and cost, flights to China", base=AA["data"]),
+    dict(name="China Southern Airlines key figures", cover="2023-1H2026 · revenue, profit, international traffic, fuel", base=CS["data"]),
+    dict(name="Valuation of covered companies", cover="30 October 2026 · price, market value, P/E, P/B, dividend yield", base="data/valuation-2026-10-30"),
     dict(name="Geely Automobile key figures", cover="2023-Sep 2026 · revenue, profit, sales by brand, exports", base=GEELY["data"]),
     dict(name="China-Russia goods trade", cover="2020-2025 · Chinese customs data · top products", base=RU["data"]),
     dict(name="Kazatomprom key figures", cover="2023-1H2026 · production, price, cost, profit, sales by region", base=KAP["data"]),
@@ -1244,7 +1733,7 @@ page("index.html", "Steppe & Silk Research", home, "",
 counts = {t: sum(r["tag"] == t for r in REPORTS) for t in ("Companies", "Trade")}
 research = f'''<section class="page-head"><div class="wrap">
 <h1>Research</h1>
-<p><b>Company notes</b> look at how a company makes money and what has changed, based on its annual report.
+<p><b>Company notes</b> look at how a company makes money, what has changed and what the market pays for it, based on its reports.
 <b>Trade briefs</b> look at what Kazakhstan and its neighbours sell and buy, based on official statistics.</p>
 <div class="filters">
 <button class="on" data-f="all">All <span>{len(REPORTS)}</span></button>
@@ -1259,6 +1748,18 @@ page("research.html", "Research · Steppe & Silk Research", research, "research.
 # ---------- Data ----------
 
 DATASETS = [
+    dict(name="KazMunayGas key figures", cover="2023-1H2026", unit="₸ billion, thousand t, $/bbl",
+         what="Revenue, net profit, EBITDA, free cash flow, net debt, oil output, Brent and the exchange rate; first half of 2025 and 2026; valuation.",
+         src="KazMunayGas IFRS results releases; KASE", base=KMG["data"], r=KMG),
+    dict(name="Air Astana Group key figures", cover="2023-1H2026", unit="US$ million, US cents",
+         what="Revenue, profit and passengers; first half of 2025 and 2026 with EBITDAR, RASK and CASK; weekly flights to China.",
+         src="Air Astana results releases", base=AA["data"], r=AA),
+    dict(name="China Southern Airlines key figures", cover="2023-1H2026", unit="RMB billion, million",
+         what="Revenue, profit to shareholders, international revenue and passengers; first half of 2025 and 2026 with jet fuel costs.",
+         src="China Southern Airlines results (HKEXnews)", base=CS["data"], r=CS),
+    dict(name="Valuation of covered companies", cover="30 October 2026", unit="local currency, US$, ratios",
+         what="Share price, market value, price to 2025 profit, price to book value and dividend yield for the seven companies covered.",
+         src="KASE; Stock Analysis; National Bank of Kazakhstan; company reports", base="data/valuation-2026-10-30", r=None),
     dict(name="Geely Automobile key figures", cover="2023-Sep 2026", unit="RMB billion, units, %",
          what="Revenue, reported and core profit, sales volume; first half of 2025 and 2026; sales by brand (Geely, Galaxy, Lynk & Co, Zeekr) and exports, January to September.",
          src="Geely Automobile Holdings reports and sales announcements", base=GEELY["data"], r=GEELY),
@@ -1283,7 +1784,7 @@ DATASETS = [
 ]
 drows = "".join(f'''<tr><td><b>{d["name"]}</b><br><span class="muted">{d["what"]}</span></td><td>{d["cover"]}</td><td>{d["unit"]}</td>
 <td>{d["src"]}</td><td class="nowrap"><a href="{d["base"]}.xlsx" download>XLSX</a> &middot; <a href="{d["base"]}.csv" download>CSV</a></td>
-<td><a href="{d["r"]["url"]}">{d["r"]["title"].split(":")[0]}</a></td></tr>''' for d in DATASETS)
+<td>{f'<a href="{d["r"]["url"]}">{d["r"]["title"].split(":")[0]}</a>' if d["r"] else "All company notes"}</td></tr>''' for d in DATASETS)
 data_page = f'''<section class="page-head"><div class="wrap">
 <h1>Data</h1>
 <p>The numbers used in each report. Every file lists its sources and what the numbers include. You can reuse them if you credit Steppe &amp; Silk Research.</p>
@@ -1300,13 +1801,13 @@ page("data.html", "Data · Steppe & Silk Research", data_page, "data.html",
 about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></section>
 <section class="block"><div class="wrap"><div class="prose">
 <p class="lead">Steppe &amp; Silk Research is an independent research publication covering companies in Kazakhstan and the country's trade with China. It was founded in 2026 by Chingiz Bakytzhanov.</p>
-<p>The publication produces two formats. <b>Company notes</b> examine how a company earns its money and what has changed in its results, based on its annual report. <b>Trade briefs</b> analyse what Kazakhstan exports and imports, based on official statistics.</p>
+<p>The publication produces two formats. <b>Company notes</b> examine how a company earns its money and what has changed in its results, based on its annual report. <b>Trade briefs</b> analyse trade between Kazakhstan, its neighbours and China, based on official statistics. Company notes also compare the share price with the company's profit, book value and dividends.</p>
 <h2>Editorial standards</h2>
 <ul>
 <li>Figures are taken from company filings and official statistics, and every source is cited with a link.</li>
 <li>The data behind each chart is published and can be <a href="data.html">downloaded</a>.</li>
 <li>Where sources disagree, as Kazakh and Chinese trade statistics often do, each report states which figures it uses and why.</li>
-<li>Analysis and opinion are kept separate. The author's own assessment appears only in the "My view" section of each report.</li>
+<li>Analysis and opinion are kept separate. The author's own assessment appears only in the "My view" section of company notes and the "Author's comment" section of trade briefs.</li>
 <li>Nothing published here is investment advice.</li>
 </ul>
 <h2>Corrections</h2>
@@ -1332,7 +1833,7 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, Geely Automobile Holdings, Zeekr and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence.</p>
 <p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>
@@ -1366,7 +1867,7 @@ redirect("contact.html", "about.html#contact")
 
 urls = ["", "research.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-10-23</lastmod></url>\n" for u in urls) + "</urlset>\n")
+      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-11-01</lastmod></url>\n" for u in urls) + "</urlset>\n")
 
 write("assets/favicon.svg", FAVICON)
 for name in ("style.css", "site.js"):
@@ -1460,7 +1961,9 @@ halyk_pdf = pdf_doc(HALYK, HALYK["summary"], f'''
 <h2>3. The first half of 2026</h2>
 <p>Net income for the first six months of 2026 was ₸447.6 billion, 15.3% less than a year earlier. The bank names three causes [4]. The National Bank of Kazakhstan raised minimum reserve requirements, with another increase in April 2026 [5]; without this effect the margin would have been 7.2% instead of 6.8%. The regulator also tightened the rules on retail lending. And the average rate paid on customer accounts rose while the average rate on loans stayed flat, so net interest income grew only 2.6%, to ₸657.6 billion.</p>
 <p>Lending kept growing, with gross loans up 13.2% over the year to June 2026, and the cost of risk stayed at 1.4%. The fall in profit therefore comes from the price of money, not from bad loans.</p>
-<h2>4. Risks</h2>
+<h2>4. Valuation</h2>
+<p>Halyk's shares closed at ₸372.93 on the Kazakhstan Stock Exchange on 30 October 2026. With 10.9 billion shares outstanding (13.4 billion issued less 2.5 billion bought back), the market value was about ₸{VAL['HSBK']['mv'] / 1000:.1f} trillion: {VAL['HSBK']['pe']:.1f} times 2025 net income and {VAL['HSBK']['pb']:.2f} times equity at 30 June 2026. Dividends of ₸30.10 and ₸28.09 per share paid in 2026 give a yield of {VAL['HSBK']['dy']:.1f}%. For comparison, Kaspi.kz traded at {VAL['KSPI']['pe']:.1f} times its 2025 profit.</p>
+<h2>5. Risks</h2>
 <p>The base rate was kept at 18% in March 2026 [5]. If rates stay high for longer, deposits stay expensive and the margin stays under pressure. Further limits on consumer lending would slow the retail loan book, and a slowdown in the economy would raise the cost of risk from its current low level. This note is not investment advice.</p>''',
     "view_halyk.txt", SRC_HALYK)
 
@@ -1506,7 +2009,9 @@ kap_pdf = pdf_doc(KAP, KAP["summary"], f'''
       columns([("C1", D1, U_C1 + list(U_H1["c1"]))], U_YEARS + ["1H 2025", "1H 2026"], w=440, h=190, top=28, fmt="{:.2f}"),
       "Sources: [1]-[3].")}
 <p>Net profit fell 9%, to ₸240 billion, mainly because of exchange-rate losses and higher finance costs, and profit attributable to shareholders fell 23%, to ₸157 billion, as a larger part went to minority owners of the mines [2]. The company lowered its 2026 revenue guidance to ₸2,100-2,200 billion and raised its C1 guidance to $25.50-27.00 per pound, while keeping production guidance at 27,500-29,000 tU [2]. In August 2025 it had already lowered its nominal 2026 production level by about 10%, to 29,697 tU [5].</p>
-<h2>5. Risks</h2>
+<h2>5. Valuation</h2>
+<p>Kazatomprom's shares closed at ₸28,350 on the Kazakhstan Stock Exchange on 30 October 2026, a market value of about ₸{VAL['KZAP']['mv'] / 1000:.1f} trillion (${VAL['KZAP']['usd']:.1f} billion): {VAL['KZAP']['pe']:.1f} times adjusted 2025 profit to shareholders. The ₸335 billion dividend for 2025, about ₸1,292 per share, gives a yield of {VAL['KZAP']['dy']:.1f}%.</p>
+<h2>6. Risks</h2>
 <p>Profit depends on the uranium price. The new extraction tax rises with output and price, so it takes a larger share in a strong market. Acid shortages could limit production until the new plant starts, and a stronger tenge lowers revenue in tenge while raising costs in dollars. This note is not investment advice.</p>''',
     "view_kazatomprom.txt", SRC_KAP)
 
@@ -1547,11 +2052,81 @@ geely_pdf = pdf_doc(GEELY, GEELY["summary"], f'''
 <p>Domestic passenger car sales in China fell 24%, but Geely's total sales rose 1% to 1.42 million because exports grew 158%, to 474,228 [2]. The average selling price rose by RMB15,000 to RMB112,000, revenue rose 15% to RMB173.6 billion and the gross margin rose from 16.3% to 17.9%. Reported profit fell 1.8%, to RMB9.09 billion, because of a swing from a foreign exchange gain to a loss; core profit rose 46%, to RMB9.68 billion [2].</p>
 <h2>5. Kazakhstan</h2>
 <p>In 2025 Geely's partner plant in Kazakhstan started producing both electric and petrol cars, and Zeekr reported being among the top three luxury electric brands in the country [1]. No sales figures for Kazakhstan are published.</p>
-<h2>6. Risks</h2>
+<h2>6. Valuation</h2>
+<p>Geely's shares closed at HK$13.84 in Hong Kong on 30 October 2026. With about 10.8 billion shares the market value was about RMB{VAL['G175']['mv']:.0f} billion, {VAL['G175']['pe']:.1f} times reported 2025 profit and {VAL['G175']['mv'] / G_CORE[2]:.1f} times core profit. The HK$0.50 dividend gives a yield of {VAL['G175']['dy']:.1f}%.</p>
+<h2>7. Risks</h2>
 <p>To meet its 2026 target of 3.45 million cars, Geely must sell about 1.21 million in the fourth quarter, around 405,000 a month, against 292,168 in September [4]. The domestic market is shrinking, price competition remains strong, exports are exposed to trade barriers and currencies, and Lynk &amp; Co's sales fell 19% in the first nine months of 2026. This note is not investment advice.</p>''',
     "view_geely.txt", SRC_GEELY)
 
-for slug, html_doc in (("geely-2026", geely_pdf), ("china-russia-trade-2025", ru_pdf), ("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
+kmg_pdf = pdf_doc(KMG, KMG["summary"], f'''
+<h2>1. Data</h2><p>All figures come from KazMunayGas's IFRS results releases for 2024, 2025 and the first half of 2026 [1-3]. Net profit includes KMG's share in the profit of joint ventures and associates, mainly Tengizchevroil. Production is oil and gas condensate net to KMG.</p>
+<h2>2. Results for 2023-2025</h2>
+<p>Revenue was flat in 2024 and rose 12.5% in 2025, to ₸9,371 billion, mostly because the tenge weakened from 469 to 521 per dollar while Brent fell from $80.76 to $69.10 [1]. Net profit was ₸927 billion in 2023, ₸1,094 billion in 2024 and ₸1,072 billion in 2025. Oil and condensate output rose 10% in 2025, to 26.2 million tonnes. Net debt fell from ₸1,645 billion at the end of 2023 to ₸375 billion at the end of 2025, and KMG approved ₸350 billion of dividends for 2025 (₸573.66 per share).</p>
+{pfig(1, "Revenue and net profit, ₸ trillion",
+      columns([("Revenue", D1, [v / 1000 for v in M_REV]), ("Net profit", L1, [v / 1000 for v in M_NP])], M_YEARS, w=440, h=190, top=11, fmt="{:.2f}"),
+      "Dark: revenue; light: net profit. Sources: [1], [3].")}
+<div class="keep"><div class="cap"><b>Table 1.</b> KazMunayGas key figures</div>
+{ptable(["", *M_YEARS, "1H 2025", "1H 2026"],
+        [["Dated Brent, $/bbl", *[f"{v:.2f}" for v in M_BRENT], *[f"{v:.2f}" for v in M_H1["brent"]]],
+         ["Output, thousand t", *map(n0, M_OIL), *map(n0, M_H1["oil"])],
+         ["Revenue, ₸ billion", *map(n0, M_REV), *map(n0, M_H1["rev"])],
+         ["Net profit, ₸ billion", *map(n0, M_NP), *map(n0, M_H1["np"])],
+         ["Free cash flow, ₸ billion", *map(n0, M_FCF), *map(n0, M_H1["fcf"])]],
+        "Sources: [1]-[3].")}</div>
+<h2>3. The first half of 2026</h2>
+<p>Brent averaged $92.31, 28% more than a year earlier. Revenue rose 24%, to ₸5,568 billion, and net profit 69%, to ₸904 billion, while output fell 4.6% because of restrictions on intake by the Caspian Pipeline Consortium [2]. Net debt rose to ₸983 billion after KMG bought bonds of Samruk-Kazyna, and cash capital spending rose 61%.</p>
+<h2>4. China</h2>
+<p>KMG owns 50% of Kazakhstan-China Pipeline LLP. In October 2025 it issued CNY1.25 billion of five-year bonds at 2.95%, listed in Hong Kong and Astana; in 2025 it signed agreements with CNOOC (Zhylyoi) and Sinopec (Berezovskiy) and hired a consortium led by China Petroleum Pipeline Engineering to build two 210 km pipelines [1].</p>
+<h2>5. Valuation</h2>
+<p>At ₸36,052.80 per share on 30 October 2026, KMG's market value was about ₸{VAL['KMGZ']['mv'] / 1000:.1f} trillion, {VAL['KMGZ']['pe']:.1f} times 2025 net profit and {VAL['KMGZ']['mv'] / M_LTM:.1f} times profit for the twelve months to June 2026; the dividend yield was {VAL['KMGZ']['dy']:.1f}%. Only about 0.3% of the shares traded over the past year, so the price is a weak guide to value.</p>
+<h2>6. Risks</h2>
+<p>Profit in 2026 rests on a high oil price. Export volumes depend on the Caspian Pipeline Consortium, a stronger tenge lowers revenue in tenge, and rising spending on petrochemicals will reduce free cash flow. This note is not investment advice.</p>''',
+    "view_kazmunaygas.txt", SRC_KMG)
+
+aa_pdf = pdf_doc(AA, AA["summary"], f'''
+<h2>1. Data</h2><p>All figures come from Air Astana's results releases for 2024, 2025 and the first half of 2026 and its joint venture announcement of 30 October 2026 [1-4]. Money is in US dollars; revenue and profit are statutory IFRS figures.</p>
+<h2>2. Results for 2023-2025</h2>
+<p>Revenue rose from $1,175 million in 2023 to $1,454 million in 2025, and passengers from 8.1 million to 9.7 million. Profit fell from $68.7 million to $52.8 million and then to $13.6 million [1, 3]. In 2025 22 unscheduled removals of Pratt &amp; Whitney engines grounded up to 13 aircraft in the peak season, which the company estimates cost $42.3 million of EBITDAR, and the weaker tenge cost FlyArystan an estimated $18.4 million [1].</p>
+{pfig(1, "Revenue and other income, $ million", columns([("Revenue", D1, A_REV)], A_YEARS, w=440, h=180, top=1700, fmt="{:,.0f}"), "Sources: [1], [3].")}
+<h2>3. China</h2>
+<p>Weekly flights to China rose from 16 in 2024 to 24 in 2025 and up to 51 in summer 2026, to seven cities, with capacity to China 81% higher in the second quarter of 2026 [1, 2]. A codeshare with China Southern covering 50 weekly flights was followed on 30 October 2026 by a joint venture, the first between airlines of the two countries [4].</p>
+<div class="keep"><div class="cap"><b>Table 1.</b> Air Astana Group key figures</div>
+{ptable(["", *A_YEARS, "1H 2025", "1H 2026"],
+        [["Revenue, $ million", *[f"{v:,.0f}" for v in A_REV], *[f"{v:,.0f}" for v in A_H1["rev"]]],
+         ["Profit, $ million", *[f"{v:.1f}" for v in A_PAT], *[f"{v:.1f}" for v in A_H1["pat"]]],
+         ["Passengers, million", *[f"{v:.1f}" for v in A_PAX], *[f"{v:.2f}" for v in A_H1["pax"]]],
+         ["RASK / CASK, US cents", "", "6.75 / 6.10", "6.60 / 6.20", "6.41 / 5.97", "7.43 / 7.30"]],
+        "Sources: [1]-[3].")}</div>
+<h2>4. The first half of 2026</h2>
+<p>Revenue rose 16%, to $764 million, with capacity almost unchanged. Cost per seat-kilometre rose 22% against 16% for revenue per seat-kilometre, as fuel at foreign airports cost 98% more in the second quarter and the tenge strengthened 7%. The group lost $21.2 million [2].</p>
+<h2>5. Valuation</h2>
+<p>At ₸699.87 per share on 30 October 2026 the market value was about ${VAL['AIRA']['mv'] * 1000:.0f} million, {VAL['AIRA']['pe']:.0f} times 2025 profit and {VAL['AIRA']['pb']:.1f} times book value. Over the twelve months to June 2026 the group made a loss of ${-A_LTM:.1f} million.</p>
+<h2>6. Risks</h2>
+<p>The engine repair backlog is expected to last through 2028, fuel abroad is expensive and only partly hedged, exchange rates cut both ways, and net debt rose to 2.1 times EBITDAR. This note is not investment advice.</p>''',
+    "view_air_astana.txt", SRC_AA)
+
+cs_pdf = pdf_doc(CS, CS["summary"], f'''
+<h2>1. Data</h2><p>All figures come from China Southern's IFRS annual results for 2024 and 2025 and its Interim Report 2026 [1-3]. Money is in Chinese yuan. Profit is attributable to equity shareholders.</p>
+<h2>2. Results for 2023-2025</h2>
+<p>Revenue rose from RMB159.9 billion in 2023 to RMB182.3 billion in 2025. Profit to shareholders moved from a loss of RMB4.14 billion to a loss of RMB1.77 billion and a profit of RMB0.86 billion [1, 3]. Domestic revenue was flat in 2025 and the domestic yield fell 4%, while international revenue grew from RMB35.2 billion in 2023 to RMB57.6 billion and international passengers from 9.1 million to 21.1 million.</p>
+{pfig(1, "Revenue from international routes, RMB billion", columns([("International", D1, C_INTL_REV)], C_YEARS, w=440, h=180, top=68, fmt="{:.1f}"), "Sources: [1], [3].")}
+<div class="keep"><div class="cap"><b>Table 1.</b> China Southern key figures, RMB billion</div>
+{ptable(["", *C_YEARS, "1H 2025", "1H 2026"],
+        [["Operating revenue", *[f"{v:.1f}" for v in C_REV], *[f"{v:.1f}" for v in C_H1["rev"]]],
+         ["Profit to shareholders", *[f"{v:.2f}" for v in C_NP], *[f"{v:.2f}" for v in C_H1["np"]]],
+         ["Jet fuel costs", "", "55.0", "52.5", *[f"{v:.1f}" for v in C_H1["fuel"]]]],
+        "Sources: [1]-[3].")}</div>
+<h2>3. The first half of 2026</h2>
+<p>Revenue rose 9.7%, to RMB94.7 billion, and international passenger revenue 27%. Jet fuel costs rose 38%, to RMB34.9 billion, and the loss to shareholders widened from RMB1.5 billion to RMB3.7 billion [2]. Liabilities were 84% of assets at the end of 2025, and no dividend was paid for 2025.</p>
+<h2>4. Kazakhstan</h2>
+<p>China Southern flies up to 29 weekly return flights from Urumqi, Beijing, Guangzhou and Xi'an to Almaty and Astana and signed a joint venture with Air Astana on 30 October 2026, building on a codeshare covering 50 weekly flights.</p>
+<h2>5. Valuation</h2>
+<p>At the Hong Kong price of HK$2.72 on 30 October 2026, applied to all 18.1 billion A and H shares, the market value was about RMB{VAL['CS1055']['mv']:.0f} billion: {VAL['CS1055']['pe']:.0f} times 2025 profit and {VAL['CS1055']['pb']:.2f} times book value.</p>
+<h2>6. Risks</h2>
+<p>Fuel is the largest cost and cannot be hedged effectively in China, domestic fares are falling, debt is high and large aircraft orders will need more borrowing. This note is not investment advice.</p>''',
+    "view_china_southern.txt", SRC_CS)
+
+for slug, html_doc in (("kazmunaygas-2026", kmg_pdf), ("air-astana-2026", aa_pdf), ("china-southern-2026", cs_pdf), ("geely-2026", geely_pdf), ("china-russia-trade-2025", ru_pdf), ("kazatomprom-2025", kap_pdf), ("halyk-bank-2026", halyk_pdf), ("china-central-asia-2025", ca_pdf)):
     os.makedirs(os.path.join(HERE, "pdf"), exist_ok=True)
     with open(os.path.join(HERE, "pdf", slug + ".html"), "w") as f:
         f.write(html_doc)
