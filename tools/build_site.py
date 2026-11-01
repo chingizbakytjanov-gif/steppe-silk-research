@@ -4,7 +4,7 @@
 Run:  python3 tools/build_site.py "$PWD"
 Then: node tools/render_og.js "$PWD"   (redraws the link-preview images in og/)
 """
-import csv, json, os, sys
+import csv, json, os, re, sys
 from html import escape
 
 OUT = sys.argv[1]
@@ -23,7 +23,8 @@ INK, GREY, ACCENT, MUTED = "#14202e", "#bfc3c9", "#0b6e79", "#5f6873"
 CHART_HI = "#1f2d3d"  # charts: neutral grey bars, dark slate for the highlight and the second series
 CHART_FONT = "IBM Plex Sans,Arial"
 
-NAV = [("research.html", "Research"), ("data.html", "Data"), ("about.html", "About")]
+NAV = [("research.html", "Research"), ("news.html", "News"), ("learn.html", "Learn"), ("data.html", "Data"), ("about.html", "About"),
+       ("about.html#contact", "Contact")]
 
 FAVICON = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
 <rect width="32" height="32" fill="{INK}"/><rect x="6" y="18" width="5" height="8" fill="#fff"/>
@@ -96,6 +97,12 @@ def redirect(path, target):
 
 # ---------- Charts ----------
 
+def hu(v, d=1):
+    """Round half up for display (Python's round() sends 25.25 to 25.2)."""
+    from decimal import Decimal, ROUND_HALF_UP
+    return str(Decimal(str(v)).quantize(Decimal(1).scaleb(-d), rounding=ROUND_HALF_UP))
+
+
 def columns(series, labels, w=480, h=250, fmt="{:.1f}", unit="", top=None, hi=None, desc=""):
     """Column chart. series = [(name, colour, values)]; one series highlights column `hi` in the accent colour."""
     n, k = len(labels), len(series)
@@ -163,7 +170,7 @@ BALANCE = [2.6, 1.6, 2.2, -2.1, -0.3, -3.7]
 # GACC monthly bulletin, table (2), December issue of each year, US$ thousand
 CN_KZ_RAW = [(21446707, 11707318, 9739389), (25250692, 13981061, 11269630), (31174483, 16355236, 14819247),
              (41021166, 24697397, 16323769), (43819657, 27964080, 15855577), (48675864, 29695302, 18980562)]
-CN_TURNOVER = [round(a / 1e6, 2) for a, _, _ in CN_KZ_RAW]
+CN_TURNOVER = [round(a / 1e6, 2) for a, _, _ in CN_KZ_RAW]   # shown with half-up rounding: 25.25 is 25.3
 CN_EXPORTS_TO_KZ = [round(b / 1e6, 2) for _, b, _ in CN_KZ_RAW]
 CN_IMPORTS_FROM_KZ = [round(c / 1e6, 2) for _, _, c in CN_KZ_RAW]
 TOP_EXPORTS = [("Ores, slag and ash", 3.94), ("Oil and mineral fuels", 3.28), ("Copper", 2.69),
@@ -178,7 +185,8 @@ K_FIN = [1026721, 1281827, 1542934]
 K_REV = [1913490, 2532156, 4046074]
 K_NI = [848770, 1056834, 1067707]
 K_MARGIN = [44.4, 41.7, 26.4]
-K_MKT_SHARE = [22.9, 28.3, 47.1]
+K_SEG = [1953068, 2586381, 4101961]      # total segment revenue as reported in the 20-F (below the sum of the three segments)
+K_MKT_SHARE = [round(m / s * 100, 1) for m, s in zip(K_MKT, K_SEG)]   # 22.9, 28.3, 47.1
 
 
 def n0(v):
@@ -372,6 +380,32 @@ data_files(TRADE["data"], "Kazakhstan's goods trade with China, 2020-2025 ($ bil
 
 # ---------- Report pages ----------
 
+def _anchor(s):
+    return re.sub(r"[^a-z0-9]+", "-", re.sub(r"<[^>]+>|&[a-z]+;", "", s).lower()).strip("-")[:48]
+
+
+def add_aside(body, r, pre, n_sources):
+    """Sidebar on wide screens: contents, the data behind the note and (filled in later) related reports."""
+    heads = []
+    def h2(m):
+        text = m.group(1)
+        a = _anchor(text)
+        heads.append((a, re.sub(r"<[^>]+>", "", text)))
+        return f'<h2 id="{a}">{text}</h2>'
+    body = re.sub(r"<h2>(.*?)</h2>", h2, body)
+    skip = {"Download", "How to cite"}
+    toc = "".join(f'<li><a href="#{a}">{t}</a></li>' for a, t in heads if t not in skip)
+    figs, tabs = body.count('class="fig-title"'), body.count('class="table-title"')
+    aside = (f'<aside class="report-aside"><div class="aside-box"><div class="aside-label">Contents</div><ol class="aside-toc">{toc}</ol></div>'
+             f'<div class="aside-box"><div class="aside-label">In this {"brief" if r["tag"] == "Trade" else "note"}</div>'
+             f'<dl class="aside-stats"><div><dt>Figures and charts</dt><dd>{figs}</dd></div>'
+             f'<div><dt>Tables</dt><dd>{tabs}</dd></div><div><dt>Sources</dt><dd>{n_sources}</dd></div></dl>'
+             f'<div class="aside-dl"><a href="{pre}{r["data"]}.xlsx" download>Data, XLSX</a><a href="{pre}{r["data"]}.csv" download>Data, CSV</a>'
+             + (f'<a href="{pre}{r["pdf"]}" download>Full report, PDF</a>' if r.get("pdf") else "") + '</div></div>'
+             '<!--RELATED--></aside>')
+    return body.replace("<!--ASIDE-->", aside)
+
+
 def report(r, sections, facts, sources, disclaimer=False, meta=None):
     """Company notes open with five fact tiles. Trade briefs are statistical bulletins: a box describing
     the data (meta) and a table of key indicators (facts = (head, rows)) instead of the tiles."""
@@ -409,6 +443,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
 {dl}
 </header>
 {kv}
+<div class="report-grid"><div class="report-main">
 {article_photo(r, pre)}
 <div class="report-body">
 <h2>{"1. " if meta else ""}Summary</h2><p>{r["summary"]}</p>
@@ -420,8 +455,11 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
 <div class="cite"><div class="label">How to cite</div><p>{cite}</p></div>
 <p class="corrections">Found an error? Email <a href="mailto:{EMAIL}">{EMAIL}</a>. Corrections are listed here with their date.</p>
 {"".join(f'<p class="corrections"><b>Correction, {d}:</b> {c}</p>' for d, c in r.get("corrections", []))}
+</div></div>
+<!--ASIDE-->
 </div>
 </div></article>'''
+    body = add_aside(body, r, pre, len(sources))
     ld = {"@context": "https://schema.org", "@type": "Article", "headline": r["title"],
           "datePublished": r["iso"], "author": {"@type": "Person", "name": AUTHOR},
           "publisher": {"@type": "Organization", "name": "Steppe & Silk Research"},
@@ -646,6 +684,7 @@ def val_table(key, n, extra=()):
 kaspi_notes = '''<ul class="notes">
 <li>All figures come from Kaspi.kz's annual report on Form 20-F for 2025 (segment and earnings notes, pp. F-33 to F-42).</li>
 <li>Segment revenue is shown before inter-segment eliminations and customer rewards, so the three segments do not add up exactly to total revenue.</li>
+<li>The Marketplace share uses the total segment revenue reported in the 20-F (₸4,102 billion in 2025), which is lower than the sum of the three segments.</li>
 <li>Growth rates, net margin (net income divided by revenue) and segment shares are calculated by the author from the reported figures.</li>
 <li>2025 is the first year that includes Hepsiburada, consolidated from 29 January 2025.</li>
 </ul>'''
@@ -654,7 +693,7 @@ KASPI["notes"] = kaspi_notes
 kaspi_sections = f'''<h2>Key findings</h2><ol>
 <li>Revenue grew by 60% in 2025 after Hepsiburada was consolidated, up from 32% growth in 2024.</li>
 <li>Net income rose by only 1%, so the net margin fell from 41.7% to 26.4%.</li>
-<li>The Marketplace segment grew from 22.9% to 47.1% of segment revenue, mostly because of Turkey.</li>
+<li>The Marketplace segment grew from {K_MKT_SHARE[0]}% to {K_MKT_SHARE[2]}% of segment revenue, mostly because of Turkey.</li>
 <li>Kaspi bought 65.4% of Hepsiburada for about $1.13 billion and raised its stake to 85% by January 2026.</li></ol>
 {fig(1, "Revenue and net income, ₸ trillion",
      columns([("Revenue", GREY, [v/1e6 for v in K_REV]), ("Net income", CHART_HI, [v/1e6 for v in K_NI])], K_YEARS,
@@ -722,8 +761,8 @@ trade_sections = f'''<h2>2. Main results</h2><ol>
 <p>The two countries record the same trade differently. In 2025 China reports $48.7 billion of trade with Kazakhstan, and Kazakhstan reports $34.1 billion. Most of the difference is in goods leaving China: $29.7 billion in Chinese data against $18.9 billion arriving in Kazakh data.</p>
 <div class="table-title">Table 2. The same trade in two sets of statistics, $ billion</div>
 {table(["", *YEARS],
-       [["Total trade, Kazakh data", *TURNOVER], ["Total trade, Chinese data", *[f"{v:.1f}" for v in CN_TURNOVER]],
-        ["Goods from China, Chinese data", *[f"{v:.1f}" for v in CN_EXPORTS_TO_KZ]], ["Goods from China, Kazakh data", *IMPORTS]])}
+       [["Total trade, Kazakh data", *TURNOVER], ["Total trade, Chinese data", *[hu(r[0] / 1e6) for r in CN_KZ_RAW]],
+        ["Goods from China, Chinese data", *[hu(r[1] / 1e6) for r in CN_KZ_RAW]], ["Goods from China, Kazakh data", *IMPORTS]])}
 <p class="table-note">Sources: Kazakh data, sources 1-6; Chinese data, {src_link(8, SRC_TRADE)}. Differences of this kind usually come from goods passing through third countries, different valuation methods and under-declared imports.</p>
 <h2>6. Author's comment</h2><blockquote class="view">{open(os.path.join(HERE, "view2.txt")).read().strip()}</blockquote>'''
 
@@ -865,11 +904,11 @@ halyk_sections = f'''<h2>Key findings</h2><ol>
 CA_ROWS = [  # country, total (Chinese data), growth %, China's exports, China's imports, country's own total or None
     ("Kazakhstan", 48.7, 11, 29.7, 19.0, 34.1),
     ("Kyrgyzstan", 27.2, 20, 22.0, 5.2, 4.97),
-    ("Uzbekistan", 16.1, 18, 14.2, 1.9, 17.2),
+    ("Uzbekistan", 16.1, 18, 14.2, 1.9, 17.1),
     ("Turkmenistan", 10.0, -5.6, 1.6, 8.4, None),
     ("Tajikistan", 4.3, 12, 3.7, 0.56, 2.82),
 ]
-CA_TOTAL, CA_EXP, CA_IMP = 106.3, 71.2, 35.1
+CA_TOTAL, CA_EXP, CA_IMP = 106.3, 71.3, 35.1   # sums of the GACC country rows: 106.34, 71.25, 35.09
 
 SRC_CA = [
     ("The State Council of the PRC (Xinhua), China-Central Asia economic, trade cooperation achieves remarkable progress in 2025 (18 January 2026)",
@@ -910,25 +949,26 @@ CA = dict(
 CA["feat"] = (None, "Trade with China in 2025, $ billion: China's figure and the country's own",
               columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", CHART_HI, [r[5] for r in CA_ROWS if r[5]])],
                       [r[0] for r in CA_ROWS if r[5]], w=520, h=270, top=56, fmt="{:.1f}",
-                      desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
+                      desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.1; Tajikistan 4.3 vs 2.8"),
               "Chinese customs via Xinhua and Eurasianet; national statistics")
 
 data_files(CA["data"], "China's goods trade with Central Asia, 2025 ($ billion)",
            ["Chinese data: General Administration of Customs of China (GACC), as reported by Xinhua and Eurasianet.",
             "Country's own data: Kazakhstan, Bureau of National Statistics (via the Association of Financiers of Kazakhstan); "
-            "Kyrgyzstan, official figure reported by RFE/RL; Uzbekistan, Statistics Agency (via UzDaily, 21.2% of $81.2 billion); "
+            "Kyrgyzstan, official figure reported by RFE/RL; Uzbekistan, Statistics Agency (via Eurasianet); "
             "Tajikistan, customs service (imports $2.3 billion plus exports $0.52 billion, via Eurasianet). Turkmenistan does not publish this figure.",
-            "China's exports to the region are $71.2 billion in the Xinhua report and $71.3 billion in Eurasianet's.",
+            "China's exports to the region are $71.25 billion in the GACC country table; Xinhua rounds the figure to $71.2 billion.",
             "Growth is the year-on-year change reported with the Chinese data."],
            [("2025", ["Country", "Total trade, Chinese data", "Growth, %", "China's exports", "China's imports", "Total trade, country's own data"],
              [[c, t, g, e, i, "" if o is None else o] for c, t, g, e, i, o in CA_ROWS] +
              [["Central Asia", CA_TOTAL, 12, CA_EXP, CA_IMP, ""]])])
 
+CA["corrections"] = [("2 November 2026", "Uzbekistan's own figure for trade with China is $17.1 billion, as reported by its statistics agency, not $17.2 billion, which had been derived from a rounded share. China's exports to the region are $71.3 billion and its surplus $36.2 billion, from the sum of the GACC country rows, not $71.2 billion and $36.1 billion. The gap in Kyrgyzstan's figures in 2025 is $22.2 billion. The conclusions are unchanged.")]
 CA["notes"] = '''<ul class="notes">
 <li>The main series is China's customs data (General Administration of Customs of China), as published by Xinhua and reported country by country by Eurasianet.</li>
 <li>"Country's own data" is each Central Asian country's official figure for its trade with China, taken from the sources listed. Turkmenistan does not publish one.</li>
 <li>For Tajikistan, the country's own total is the sum of imports from China ($2.3 billion) and exports to China ($0.52 billion) reported by its customs service.</li>
-<li>China's exports to the region are $71.2 billion in Xinhua's report and $71.3 billion in Eurasianet's. This brief uses $71.2 billion. Shares and gaps are calculated by the author.</li>
+<li>China's exports to the region are $71.25 billion when the GACC country rows are added up, which rounds to $71.3 billion; Xinhua's report gives $71.2 billion. This brief uses the GACC rows. Shares and gaps are calculated by the author.</li>
 </ul>'''
 
 ca_rows_html = [[c, f"{t:.1f}", f"{g:+.1f}%".replace(".0%", "%").replace("-", "−"), f"{e:.1f}", f"{i:.1f}",
@@ -937,7 +977,7 @@ _ca_view = os.path.join(HERE, "view_central_asia.txt")
 _ca_view = open(_ca_view).read().strip() if os.path.exists(_ca_view) else ""
 ca_sections = f'''<h2>2. Main results</h2><ol>
 <li>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time.</li>
-<li>China exported $71.2 billion to the region and imported $35.1 billion, a surplus of $36.1 billion.</li>
+<li>China exported $71.3 billion to the region and imported $35.1 billion, a surplus of $36.2 billion.</li>
 <li>Kazakhstan accounts for 46% of the total. Kyrgyzstan is second with 26% and grew fastest, by 20%.</li>
 <li>Kyrgyzstan's own statistics show $4.97 billion of trade with China, against $27.2 billion in Chinese data.</li></ol>
 <h2>3. Trade by country</h2>
@@ -952,12 +992,12 @@ ca_sections = f'''<h2>2. Main results</h2><ol>
 <p class="table-note">Sources: {src_link(0, SRC_CA)}; {src_link(1, SRC_CA)}; {src_link(2, SRC_CA)}; {src_link(3, SRC_CA)}; {src_link(4, SRC_CA)}; {src_link(5, SRC_CA)}.</p>
 <h2>4. The same trade, counted twice</h2>
 <p>The countries' own statistics tell a different story (Figure 2). Kazakhstan records $34.1 billion of trade with China, $14.6 billion less than China does. The previous <a href="kazakhstan-china-trade.html">trade brief</a> looked at that gap in detail.</p>
-<p>Kyrgyzstan's gap is bigger in absolute terms and far bigger in proportion. Its official figure of $4.97 billion is less than a fifth of China's $27.2 billion, and the difference grew from $17.1 billion in 2024 to about $22 billion in 2025 (RFE/RL). Kyrgyz customs officials told RFE/RL that China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use. Under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap.</p>
-<p>In Tajikistan the two sides agree on exports to China but not on imports: China reports $3.7 billion of goods sent, Tajik customs $2.3 billion received. Eurasianet links the difference to Chinese goods entering without being recorded. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's.</p>
+<p>Kyrgyzstan's gap is bigger in absolute terms and far bigger in proportion. Its official figure of $4.97 billion is less than a fifth of China's $27.2 billion, and the difference grew from $17.1 billion in 2024 (RFE/RL) to $22.2 billion in 2025. Kyrgyz customs officials told RFE/RL that China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use. Under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap.</p>
+<p>In Tajikistan the two sides agree on exports to China but not on imports: China reports $3.7 billion of goods sent, Tajik customs $2.3 billion received. Eurasianet links the difference to Chinese goods entering without being recorded. Uzbekistan is the one case where the country's own figure, $17.1 billion, is higher than China's.</p>
 {fig(2, "Trade with China in 2025: China's figure and the country's own, $ billion",
      columns([("China's data", GREY, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", CHART_HI, [r[5] for r in CA_ROWS if r[5]])],
              [r[0] for r in CA_ROWS if r[5]], w=560, h=260, top=56, fmt="{:.1f}",
-             desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.2; Tajikistan 4.3 vs 2.8"),
+             desc="Kazakhstan 48.7 vs 34.1; Kyrgyzstan 27.2 vs 5.0; Uzbekistan 16.1 vs 17.1; Tajikistan 4.3 vs 2.8"),
      src_link(1, SRC_CA) + "; " + src_link(3, SRC_CA) + "; " + src_link(4, SRC_CA) + "; " + src_link(5, SRC_CA), CA["data"])}
 <p>For anyone using these numbers, the practical point is to say whose data they are. A headline of "$27 billion of trade with Kyrgyzstan" describes goods leaving China, and a large part of them may end up somewhere else.</p>
 {f'<h2>5. Author{chr(39)}s comment</h2><blockquote class="view">{_ca_view}</blockquote>' if _ca_view else ""}'''
@@ -1522,7 +1562,7 @@ kmg_sections = f'''<h2>Key findings</h2><ol>
 {view("view_kazmunaygas.txt")}'''
 
 report(KMG, kmg_sections,
-       [("Output, 2025", "26.2 mn t"), ("Revenue, 2025", "₸9.37 trn"), ("Net profit, 1H 2026", "+69%"),
+       [("Oil output 2025, million tonnes", "26.2"), ("Revenue, 2025", "₸9.37 trn"), ("Net profit, 1H 2026", "+69%"),
         ("Net debt, end-2025", "₸375 bn"), ("Price to 2025 profit", f"{VAL['KMGZ']['pe']:.1f}")],
        SRC_KMG + SRC_PRICES[:1], disclaimer=True)
 
@@ -1777,6 +1817,14 @@ data_files("data/valuation-2026-10-30", f"Valuation of the companies covered, at
                "" if v["pb"] is None else round(v["pb"], 2), "" if v["dy"] is None else round(v["dy"], 1)] for v in VAL.values()])])
 
 REPORTS = [KMG, AA, CS, GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
+for _r in REPORTS:  # related reports in each sidebar: same kind first, then the rest, newest first
+    _rel = [x for x in REPORTS if x is not _r and x["tag"] == _r["tag"]][:3] + [x for x in REPORTS if x is not _r and x["tag"] != _r["tag"]][:1]
+    _box = ('<div class="aside-box"><div class="aside-label">Related research</div><ul class="aside-rel">'
+            + "".join(f'<li><a href="../{x["url"]}"><span>{kind_label(x)}</span>{x["title"]}</a></li>' for x in _rel) + '</ul></div>')
+    _f = os.path.join(OUT, _r["url"])
+    with open(_f) as _h:
+        _html = _h.read()
+    write(_r["url"], _html.replace("<!--RELATED-->", _box))
 
 
 # ---------- Home ----------
@@ -1795,7 +1843,7 @@ COVERAGE = [  # companies first, then countries; logo files are in assets/logos 
          stats=[("Production, 2025", "25,839 tU"), ("Sales to Asia, 2025", "56%"), ("Cost per lb, 1H 2026", "+37%")]),
     dict(code="KMGZ", logo="kazmunaygas", tag="Company · Kazakhstan", name="KazMunayGas", band="#0f4c81",
          what="The national oil and gas company", r=KMG,
-         stats=[("Output, 2025", "26.2 mn t"), ("Net profit, 1H 2026", "+69%"), ("Price to 2025 profit", f"{VAL['KMGZ']['pe']:.1f}")]),
+         stats=[("Oil output, 2025", "26.2 million t"), ("Net profit, 1H 2026", "+69%"), ("Price to 2025 profit", f"{VAL['KMGZ']['pe']:.1f}")]),
     dict(code="AIRA", logo="air-astana.png", tag="Company · Kazakhstan", name="Air Astana", band="#9a7b4f",
          what="Air Astana and the low-cost FlyArystan", r=AA,
          stats=[("Revenue, 2025", "$1.45 bn"), ("Weekly flights to China", "up to 51"), ("Result, 1H 2026", "−$21.2 mn")]),
@@ -1810,7 +1858,7 @@ COVERAGE = [  # companies first, then countries; logo files are in assets/logos 
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
     dict(code="CA", flags=["kz", "kg", "uz", "tj", "tm"], tag="Region", name="Central Asia", band="#8a5a2b",
          what="Five states whose trade with China passed $100 billion in 2025", r=CA,
-         stats=[("Trade with China, 2025", "$106.3 bn"), ("China's surplus", "$36.1 bn"), ("Kyrgyzstan, own data", "$4.97 bn")]),
+         stats=[("Trade with China, 2025", "$106.3 bn"), ("China's surplus", "$36.2 bn"), ("Kyrgyzstan, own data", "$4.97 bn")]),
     dict(code="RU", flags=["ru"], tag="Country", name="Russia", band="#4a5562",
          what="China's largest neighbour by trade, where cars fell sharply in 2025", r=RU,
          stats=[("Trade with China, 2025", "$228.1 bn"), ("Change, 2025", "−6.9%"), ("Chinese cars bought", "−49%")]),
@@ -1840,7 +1888,7 @@ HERO_CREDIT = ('Photo: Kazakhstan Temir Zholy freight train between Joloman and 
                '<a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener">CC BY-SA 3.0</a>, cropped')
 # Key numbers from the reports; each links to the report it comes from.
 NUMBERS = [("$228.1 bn", "China-Russia trade, 2025", RU), ("$34.1 bn", "Kazakhstan-China trade, 2025", TRADE),
-           ("26.2 mn t", "Oil produced by KazMunayGas, 2025", KMG), ("51", "Air Astana weekly flights to China, summer 2026", AA),
+           ("26.2", "Million tonnes of oil produced by KazMunayGas, 2025", KMG), ("51", "Air Astana weekly flights to China, summer 2026", AA),
            ("25,839 t", "Uranium mined by Kazatomprom, 2025", KAP), ("+158%", "Geely exports, 1H 2026", GEELY)]
 home = f'''<section class="masthead hero">
 <img class="hero-img" src="assets/photos/hero-ktz-2400.jpg" srcset="assets/photos/hero-ktz-1200.jpg 1200w, assets/photos/hero-ktz-2400.jpg 2400w"
@@ -1995,6 +2043,263 @@ data_page = f'''<section class="page-head"><div class="wrap">
 page("data.html", "Data · Steppe & Silk Research", data_page, "data.html",
      "Download the data behind Steppe & Silk Research reports on Kazakhstan, Central Asia and China.")
 
+# ---------- News ----------
+# Short briefs on markets, deals and rankings. Newest first. Every figure is taken from the source listed with it.
+
+NEWS = [
+    dict(id="apple-nvidia-oct-2026", date="30 Oct 2026", iso="2026-10-30", tag="Rankings",
+         title="Apple passes Nvidia as the world's most valuable listed company",
+         dek="At the close on 30 October Apple was worth about $5.03 trillion and Nvidia $4.93 trillion.",
+         body="<p>Apple ended October as the largest company on the stock market, ahead of Nvidia, which had held the top place for most of the year. "
+              "Over the month Apple's shares rose 3.5% while Nvidia's fell 10.4%. Microsoft was third at $3.88 trillion.</p>"
+              "<p>The change came during a broad fall in technology shares, as investors questioned how quickly spending on artificial intelligence "
+              "will pay off. Alphabet lost 18.7% of its value in October and Meta Platforms 15.2%.</p>",
+         why="At this size a few per cent of share price changes the ranking. The $0.1 trillion gap between the top two is larger than the combined "
+             "market value of the five Kazakh companies covered on this site, about $92 billion.",
+         table=(["Rank", "Company", "Market value, $ trillion", "Change in October"],
+                [["1", "Apple", "5.03", "+3.5%"], ["2", "Nvidia", "4.93", "−10.4%"], ["3", "Microsoft", "3.88", "+1.8%"],
+                 ["4", "Alphabet", "3.44", "−18.7%"], ["5", "Amazon", "2.60", "−3.5%"]]),
+         sources=[("TradingKey, World's largest companies by market cap, October 2026 (close of 30 October)",
+                   "https://www.tradingkey.com/analysis/stocks/us-stocks/262262204-largest-companies-by-market-cap-october-2026-apple-nvidia-microsoft-google-tradingkey")],
+         related=None),
+    dict(id="air-astana-china-southern-jv", date="30 Oct 2026", iso="2026-10-30", tag="Deals",
+         title="Air Astana and China Southern sign the first airline joint venture between Kazakhstan and China",
+         dek="The airlines will coordinate schedules, widen codesharing and sell jointly.",
+         body="<p>Air Astana and China Southern Airlines signed a joint venture agreement on 30 October, building on a codeshare deal they already had. "
+              "Under the agreement the two airlines will coordinate flight schedules, expand codeshare services and run joint marketing.</p>"
+              "<p>Kazakhstan's deputy transport minister, Talgat Lastaev, said at the signing that flights between the two countries were up 52% on 2025, "
+              "to 117 scheduled flights a week on 21 routes, and that more than one million passengers had flown between them since the start of 2026.</p>",
+         why="China is Air Astana's fastest-growing market, but the group lost money in the first half of 2026. A joint venture lets two airlines share "
+             "the flying on a route instead of competing for the same passengers, which is one way to fill seats at better prices.",
+         table=None,
+         sources=[("Air Astana, Air Astana and China Southern Airlines sign Joint Venture Agreement (30 October 2026)",
+                   "https://ir.airastana.com/en/about-us/company-news/air-astana-and-china-southern-airlines-sign-joint-venture-agreement/")],
+         related=["air-astana-2026", "china-southern-2026"]),
+    dict(id="nbk-rate-cut-oct-2026", date="23 Oct 2026", iso="2026-10-23", tag="Rates",
+         title="Kazakhstan's central bank cuts its base rate to 15.75%",
+         dek="The National Bank lowered the rate by half a percentage point and signalled no further change this year.",
+         body="<p>The National Bank of Kazakhstan reduced its base rate from 16.25% to 15.75% on 23 October. It pointed to slower inflation, "
+              "which had fallen to 9.3% a year, and to lower inflation expectations. It still describes its policy as moderately tight.</p>"
+              "<p>The bank said a further change before the end of 2026 was unlikely, and warned that annual inflation could rise for a while at the end of "
+              "the year because utility tariffs were frozen in 2025. The next decision is due on 4 December.</p>",
+         why="The base rate sets the price of money for banks. Halyk's net interest margin fell from 7.3% to 6.8% in the first half of 2026, partly "
+             "because deposits became more expensive; a lower rate eases that pressure, though slowly.",
+         table=None,
+         sources=[("Kursiv, Kazakhstan's central bank cuts base rate, may hold it steady for rest of year (23 October 2026)",
+                   "https://kz.kursiv.media/en/2026-10-23/engk-nknk-kazakhstans-central-bank-cuts-base-rate-may-hold-it-steady-for-rest-of-year/"),
+                  ("National Bank of Kazakhstan", "https://nationalbank.kz/en")],
+         related=["halyk-bank-2026"]),
+    dict(id="accenture-oct-2026", date="1 Oct 2026", iso="2026-10-01", tag="Markets",
+         title="Accenture shares jump 16% after results beat forecasts",
+         dek="The consulting firm's stock rose more than 22% during the day before closing up about 16%.",
+         body="<p>Accenture reported revenue of $18.68 billion for its fiscal fourth quarter, against $18.03 billion expected by analysts, and adjusted "
+              "earnings of $3.29 a share against $3.18. For the full fiscal year revenue grew 6%, to $74.2 billion. The company raised its quarterly "
+              "dividend by 5% and expects revenue and adjusted earnings per share to grow 3-6% in fiscal 2027.</p>"
+              "<p>Even after the rise the shares were still down more than 18% for the year, because investors fear that artificial intelligence will "
+              "replace some of the work consulting firms are paid for.</p>",
+         why="Accenture is the largest listed consulting and technology services firm, so its results are read as a test of whether companies are "
+             "still paying for outside advice and IT work while they adopt AI. See the Learn section for how consulting firms make money.",
+         table=None,
+         sources=[("CNBC, Accenture stock rallies after earnings beat expectations (1 October 2026)",
+                   "https://www.cnbc.com/2026/10/01/accenture-rallies-more-than-20percent-after-earnings-beat-heads-for-best-day-ever.html")],
+         related=None),
+    dict(id="mgm-people-bid-withdrawn", date="23 Sep 2026", iso="2026-09-23", tag="Failed deals",
+         title="Barry Diller's People Inc. drops its $18 billion bid to take MGM Resorts private",
+         dek="The offer of $48.30 a share was withdrawn after the two sides had agreed on a price.",
+         body="<p>People Inc., the company run by Barry Diller, withdrew its proposal to buy the shares of MGM Resorts it did not already own, at $48.30 a "
+              "share, about $18 billion in total. People already holds roughly a quarter of MGM. MGM's chief executive later said that the two sides had "
+              "agreed on a price, but People could not put together a group of investors on terms it wanted.</p>"
+              "<p>MGM's board said it would continue as a standalone company. In late October MGM ended the remaining talks and said no transaction was "
+              "being considered.</p>",
+         why="Deals can fail after the price is agreed. Taking a company private needs a buyer with enough money, usually raised from partners and "
+             "lenders; if that money does not come together, the deal stops, and the target's share price often falls back.",
+         table=None,
+         sources=[("The Nevada Independent, Billionaire Barry Diller ends his quest to acquire MGM Resorts",
+                   "https://thenevadaindependent.com/article/billionaire-barry-diller-ends-his-quest-to-acquire-mgm-resorts/"),
+                  ("Yogonet, MGM ends takeover talks with largest shareholder People Inc. after $18B bid withdrawal (29 October 2026)",
+                   "https://www.yogonet.com/international/news/2026/10/29/127077-mgm-ends-takeover-talks-with-largest-shareholder-people-inc-after-18b-bid-withdrawal")],
+         related=None),
+]
+
+
+def news_item(n, pre=""):
+    rel = ""
+    if n["related"]:
+        rs = [r for r in REPORTS if r["slug"] in n["related"]]
+        rel = '<p class="news-rel">Related research: ' + "; ".join(f'<a href="{pre}{r["url"]}">{r["title"]}</a>' for r in rs) + "</p>"
+    tab = f'<div class="news-table">{table(*n["table"], num_from=2)}</div>' if n["table"] else ""
+    srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(s)}</a></li>' for s, u in n["sources"])
+    return (f'<article class="news-item" id="{n["id"]}"><div class="news-meta"><time datetime="{n["iso"]}">{n["date"]}</time>'
+            f'<span class="news-tag">{n["tag"]}</span></div><div class="news-main"><h2>{n["title"]}</h2><p class="news-dek">{n["dek"]}</p>'
+            f'{n["body"]}{tab}<div class="news-why"><div class="aside-label">Why it matters</div><p>{n["why"]}</p></div>{rel}'
+            f'<div class="news-src"><span>Sources</span><ol>{srcs}</ol></div></div></article>')
+
+
+news_tags = sorted({n["tag"] for n in NEWS})
+news = f'''<section class="page-head"><div class="wrap">
+<div class="label">News</div>
+<h1>Markets, deals and rankings</h1>
+<p>Short briefs on the moves that matter in world and Central Asian finance: deals that collapse, shares that jump or fall, changes at the top
+of company rankings, and central bank decisions. Each brief gives the figures, the source and why the event matters.</p>
+<div class="news-index"><span>{len(NEWS)} briefs</span>{"".join(f'<span>{t}</span>' for t in news_tags)}<span>Updated {NEWS[0]["date"]}</span></div>
+</div></section>
+<section class="block"><div class="wrap"><div class="news-list">{"".join(news_item(n) for n in NEWS)}</div>
+<p class="table-note">Briefs are written from the sources listed with each one. Figures are as reported on the date shown and are not updated afterwards. Not investment advice.</p>
+</div></section>'''
+page("news.html", "News · Steppe & Silk Research", news, "news.html",
+     "Briefs on world and Central Asian finance: failed deals, sharp share moves, company rankings and central bank decisions.")
+
+
+# ---------- Learn ----------
+# A short course and a glossary. Examples point to figures already published on the site.
+
+def formula(name, expr, note=""):
+    return (f'<div class="formula"><div class="formula-name">{name}</div><div class="formula-expr">{expr}</div>'
+            + (f'<div class="formula-note">{note}</div>' if note else "") + "</div>")
+
+
+def define(term, text):
+    return f'<div class="definition"><dfn>{term}</dfn><p>{text}</p></div>'
+
+
+LESSONS = [
+    ("what-finance-is", "What finance is",
+     define("Finance", "The study and practice of moving money across time and between people: saving now to spend later, borrowing now and "
+                       "repaying later, and deciding which projects deserve money.")
+     + "<p>Finance has three main branches. <b>Personal finance</b> covers a household's income, savings, loans and insurance. "
+       "<b>Corporate finance</b> covers how a company raises money, which projects it spends it on and how much it returns to its owners. "
+       "<b>Public finance</b> covers taxes, government spending and government debt.</p>"
+       "<p>Between them sit <b>financial markets and institutions</b>: banks, stock exchanges, insurers and funds. Their job is to connect people "
+       "who have spare money with people who can use it, and to price the risk of doing so. The price of money is the <b>interest rate</b>; "
+       "the price of owning part of a company is its <b>share price</b>.</p>"),
+    ("company-accounts", "Reading a company's accounts",
+     "<p>Listed companies publish three main statements, usually under International Financial Reporting Standards (IFRS) or, in the United "
+     "States, US GAAP.</p>"
+     "<ol><li><b>Income statement</b>: revenue, the costs of earning it, and what is left as profit over a period.</li>"
+     "<li><b>Balance sheet</b>: what the company owns (assets), what it owes (liabilities) and the difference, which belongs to shareholders "
+     "(equity), at one date.</li>"
+     "<li><b>Cash flow statement</b>: the cash that actually came in and went out, from operations, investment and financing.</li></ol>"
+     + formula("Accounting identity", "Assets = Liabilities + Equity")
+     + formula("Net margin", "Net margin = Net income ÷ Revenue",
+               'Kaspi.kz in 2025: ₸1,068 billion ÷ ₸4,046 billion = 26.4%. See the <a href="research/kaspi-hepsiburada.html">Kaspi note</a>.')
+     + "<p>Profit and cash are not the same. A company can report a profit while its cash falls, for example when customers pay late or when it "
+       "spends heavily on new equipment. That is why analysts read all three statements together.</p>"),
+    ("valuation", "What a company is worth",
+     "<p>The stock market puts a price on a company every trading day. Multiplying the share price by the number of shares gives its "
+     "<b>market value</b> (market capitalisation). Ratios compare that value with what the company earns or owns.</p>"
+     + formula("Market value", "Market value = Share price × Shares outstanding")
+     + formula("Price to earnings (P/E)", "P/E = Market value ÷ Net income",
+               'Halyk Bank at 30 October 2026: about ₸4.1 trillion ÷ ₸1.06 trillion = 3.8. See <a href="research/halyk-bank-2026.html">Halyk</a>.')
+     + formula("Price to book (P/B)", "P/B = Market value ÷ Equity")
+     + formula("Dividend yield", "Dividend yield = Dividend per share ÷ Share price")
+     + "<p>A low P/E can mean a share is cheap, or that investors expect profit to fall. A high P/E can mean investors expect growth, or that "
+       "the year's profit was unusually small. The ratio is a starting point for questions, not an answer. Every company note on this site "
+       "ends with a table comparing these ratios for the seven companies covered.</p>"),
+    ("banks-and-central-banks", "Banks and central banks",
+     "<p>A commercial bank takes deposits and lends most of the money out at a higher rate. Its basic income is the difference between the two.</p>"
+     + formula("Net interest margin (NIM)", "NIM = Net interest income ÷ Average interest-earning assets",
+               'Halyk: 7.3% in the first half of 2025, 6.8% in the first half of 2026.')
+     + "<p>A <b>central bank</b> sets the short-term price of money. In Kazakhstan that is the National Bank's <b>base rate</b>, cut to 15.75% "
+       "on 23 October 2026. When the central bank raises the rate, borrowing becomes dearer and inflation usually slows; when it cuts, the "
+       "opposite. Central banks also set rules for banks, such as how much money they must hold in reserve, which is why a change in reserve "
+       "requirements can reduce a bank's profit.</p>"),
+    ("audit-consulting-banking", "Audit, consulting and investment banking",
+     define("Audit", "An independent check of a company's financial statements by outside accountants, who give an opinion on whether the "
+                     "statements present the company's position fairly under the reporting standards it uses.")
+     + "<p>The auditor does not prepare the accounts; management does. The auditor tests them and signs an opinion. An <b>unmodified</b> "
+       "(clean) opinion means no material problems were found; a <b>qualified</b> opinion, an <b>adverse</b> opinion or a <b>disclaimer</b> "
+       "signals increasingly serious problems. Most large listed companies are audited by one of the <b>Big Four</b> firms: Deloitte, PwC, "
+       "EY and KPMG.</p>"
+     + define("Consulting", "Paid advice to companies and governments on strategy, operations, technology or organisation.")
+     + "<p><b>Strategy consulting</b> is dominated by McKinsey, Boston Consulting Group and Bain. Larger firms such as Accenture combine advice "
+       "with building and running technology systems. Consultants are paid for projects or by the hour; their revenue depends on clients' "
+       "budgets, which is why consulting firms' results are read as a signal of business confidence.</p>"
+     + define("Investment banking", "Helping companies raise money by issuing shares or bonds, and advising them on mergers and acquisitions.")
+     + "<p>When Air Astana listed its shares in London and Astana in 2024, banks organised the offering and found the investors. When a "
+       "takeover is announced, investment banks usually advise both sides.</p>"),
+    ("global-finance", "How global finance works",
+     "<p>Money moves between countries for two reasons: to pay for trade, and to invest. A country that imports more goods than it exports runs a "
+     "<b>trade deficit</b>, as Kazakhstan does with China; it pays for the difference with income from other trade or with money borrowed or "
+     "invested from abroad.</p>"
+     + formula("Trade balance", "Trade balance = Exports − Imports",
+               'Kazakhstan and China, 2025 (Kazakh data): $15.2 billion − $18.9 billion = −$3.7 billion. See the '
+               '<a href="research/kazakhstan-china-trade.html">trade brief</a>.')
+     + "<p>Exchange rates set how much one currency buys of another. A weaker tenge makes Kazakh exports cheaper abroad but imports dearer at home, "
+       "which is why the tenge appears in almost every company note on this site.</p>"
+       "<p>Several international institutions hold the system together. The <b>International Monetary Fund</b> lends to countries in "
+       "balance-of-payments trouble and monitors their economies. The <b>World Bank</b> finances development projects. The <b>Bank for "
+       "International Settlements</b> works with central banks and sets standards for bank capital. Countries with large savings often invest "
+       "them through <b>sovereign wealth funds</b>, such as Kazakhstan's Samruk-Kazyna, which owns stakes in KazMunayGas, Kazatomprom and "
+       "Air Astana.</p>"),
+]
+
+GLOSSARY = [
+    ("Asset", "Something a company owns or controls that is expected to bring future benefit: cash, loans given, buildings, equipment."),
+    ("Audit", "An independent examination of financial statements by outside accountants, ending in a written opinion."),
+    ("Balance sheet", "A statement of assets, liabilities and equity at a single date."),
+    ("Base rate", "The central bank's main policy interest rate. In Kazakhstan it is set by the National Bank."),
+    ("Basis point", "One hundredth of a percentage point. A cut from 16.25% to 15.75% is 50 basis points."),
+    ("Bond", "A loan sold to investors as a security. The issuer pays interest (the coupon) and repays the amount at maturity."),
+    ("Book value", "Equity as shown on the balance sheet: assets minus liabilities."),
+    ("Cash flow", "The cash a business actually receives and pays out in a period."),
+    ("Consulting", "Paid advice to organisations on strategy, operations or technology."),
+    ("Cost of risk", "A bank's provisions for bad loans as a share of its average loan book."),
+    ("Depositary receipt (GDR)", "A certificate traded on a foreign exchange that represents shares of a company listed elsewhere."),
+    ("Dividend", "The part of profit a company pays out to its shareholders."),
+    ("Dividend yield", "The annual dividend per share divided by the share price."),
+    ("EBITDA", "Earnings before interest, taxes, depreciation and amortisation; a rough measure of operating profit before financing and asset costs."),
+    ("Equity", "The owners' share of a company: assets minus liabilities."),
+    ("Exchange rate", "The price of one currency in terms of another."),
+    ("Free cash flow", "Cash from operations minus capital spending; the cash left for debt repayment and dividends."),
+    ("Free float", "The share of a company's stock that is available for trading, excluding stakes held by controlling owners."),
+    ("IFRS", "International Financial Reporting Standards, the accounting rules used by listed companies in Kazakhstan and most countries outside the US."),
+    ("Income statement", "A statement of revenue, costs and profit over a period."),
+    ("Inflation", "The rate at which the general level of prices rises."),
+    ("IPO", "Initial public offering: the first sale of a company's shares to the public on a stock exchange."),
+    ("Liability", "An obligation to pay money or deliver something in future: deposits, loans received, bonds issued."),
+    ("Market value", "Share price multiplied by the number of shares; also called market capitalisation."),
+    ("Merger and acquisition (M&A)", "The purchase of one company by another, or the combination of two companies."),
+    ("Net income", "Profit after all costs, interest and tax; also called net profit."),
+    ("Net interest margin", "A bank's net interest income divided by its average interest-earning assets."),
+    ("Net margin", "Net income divided by revenue."),
+    ("P/B", "Price to book: market value divided by equity."),
+    ("P/E", "Price to earnings: market value divided by net income."),
+    ("Return on equity (ROE)", "Net income divided by average equity: how much profit the owners' money earns."),
+    ("Revenue", "Money earned from selling goods and services before costs are deducted."),
+    ("Sovereign wealth fund", "A state-owned fund that invests national savings, such as Samruk-Kazyna in Kazakhstan."),
+    ("Trade balance", "Exports minus imports. A negative figure is a trade deficit."),
+]
+
+LEARN_REFS = [
+    ("IFRS Foundation, IFRS Accounting Standards", "https://www.ifrs.org/issued-standards/list-of-standards/"),
+    ("International Monetary Fund, About the IMF", "https://www.imf.org/en/About"),
+    ("Bank for International Settlements, About BIS", "https://www.bis.org/about/"),
+    ("National Bank of Kazakhstan", "https://nationalbank.kz/en"),
+    ("CFA Institute", "https://www.cfainstitute.org/"),
+]
+
+lesson_nav = "".join(f'<li><a href="#{a}"><span>{i:02d}</span>{t}</a></li>' for i, (a, t, _) in enumerate(LESSONS, 1))
+lessons_html = "".join(f'<section class="lesson" id="{a}"><div class="lesson-num">Lesson {i:02d}</div><h2>{t}</h2>{body}</section>'
+                       for i, (a, t, body) in enumerate(LESSONS, 1))
+glossary_html = "".join(f'<div class="gloss-row" id="term-{_anchor(k)}"><dt>{k}</dt><dd>{v}</dd></div>' for k, v in GLOSSARY)
+learn = f'''<section class="page-head"><div class="wrap">
+<div class="label">Learn</div>
+<h1>Finance from first principles</h1>
+<p>A short course for readers who are new to finance: six lessons on how companies report, how markets value them, what banks, auditors and
+consultants do, and how money moves between countries. Each lesson uses figures from the research on this site. A glossary of
+{len(GLOSSARY)} terms follows.</p>
+</div></section>
+<section class="block"><div class="wrap"><div class="learn-grid">
+<aside class="learn-aside"><div class="aside-box"><div class="aside-label">Course</div><ol class="learn-toc">{lesson_nav}
+<li><a href="#glossary"><span>A-Z</span>Glossary</a></li></ol></div></aside>
+<div class="learn-main prose">{lessons_html}
+<section class="lesson" id="glossary"><div class="lesson-num">Reference</div><h2>Glossary</h2><dl class="glossary">{glossary_html}</dl></section>
+<section class="lesson"><div class="lesson-num">Further reading</div><h2>References</h2><ol class="sources">{"".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in LEARN_REFS)}</ol></section>
+</div></div></div></section>'''
+page("learn.html", "Learn · Steppe & Silk Research", learn, "learn.html",
+     "A short course and glossary on finance: company accounts, valuation, banks, audit, consulting and global finance.")
+
+
 # ---------- About ----------
 
 about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></section>
@@ -2064,9 +2369,9 @@ redirect("contact.html", "about.html#contact")
 
 # ---------- Sitemap, assets, link-preview cards ----------
 
-urls = ["", "research.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
+urls = ["", "research.html", "news.html", "learn.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-11-01</lastmod></url>\n" for u in urls) + "</urlset>\n")
+      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-11-02</lastmod></url>\n" for u in urls) + "</urlset>\n")
 
 write("assets/favicon.svg", FAVICON)
 for name in ("style.css", "site.js"):
@@ -2169,14 +2474,14 @@ halyk_pdf = pdf_doc(HALYK, HALYK["summary"], f'''
 ca_pdf = pdf_doc(CA, CA["summary"], f'''
 <h2>1. Data</h2><p>The main series is China's customs data (General Administration of Customs of China), as published by Xinhua [1] and reported country by country by Eurasianet [2, 3]. Each Central Asian country's own figure comes from its statistics or customs service [3-6]. Turkmenistan does not publish one.</p>
 <h2>2. Trade by country</h2>
-<p>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time. China exported $71.2 billion to the region and imported $35.1 billion, a surplus of $36.1 billion. Kazakhstan accounts for 46% of the total and Kyrgyzstan for 26%.</p>
+<p>China's trade with Central Asia reached $106.3 billion in 2025, up 12% and above $100 billion for the first time. China exported $71.3 billion to the region and imported $35.1 billion, a surplus of $36.2 billion. Kazakhstan accounts for 46% of the total and Kyrgyzstan for 26%.</p>
 <div class="keep"><div class="cap"><b>Table 1.</b> China's trade with Central Asia, 2025, $ billion</div>
 {ptable(["", "Total, Chinese data", "Growth", "China's exports", "China's imports", "Total, own data"],
         ca_rows_html + [["Central Asia", f"{CA_TOTAL:.1f}", "+12%", f"{CA_EXP:.1f}", f"{CA_IMP:.1f}", ""]],
         "Tajikistan's own total is imports ($2.3 bn) plus exports ($0.52 bn) reported by its customs. Sources: [1]-[6].")}</div>
 <p>Four of the five countries import more from China than they export to it. For Uzbekistan the ratio is more than seven to one. Turkmenistan is the exception: it sold China $8.4 billion of goods, almost all of it natural gas, and bought $1.6 billion. It was also the only country whose trade with China fell, by 5.6%.</p>
 <h2>3. The same trade, counted twice</h2>
-<p>The countries' own statistics often show much less trade (Figure 1). Kazakhstan records $34.1 billion, $14.6 billion less than China. Kyrgyzstan records $4.97 billion against China's $27.2 billion, and the gap grew from $17.1 billion in 2024 [4]. Kyrgyz customs officials say China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use; under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap [4]. In Tajikistan the two sides agree on exports but not on imports [3]. Uzbekistan is the one case where the country's own figure, $17.2 billion, is higher than China's [5].</p>
+<p>The countries' own statistics often show much less trade (Figure 1). Kazakhstan records $34.1 billion, $14.6 billion less than China. Kyrgyzstan records $4.97 billion against China's $27.2 billion, and the gap grew from $17.1 billion in 2024 [4] to $22.2 billion in 2025. Kyrgyz customs officials say China counts every shipment sent to or through Kyrgyzstan, while Kyrgyzstan counts only goods for its own use; under-declared values, unregistered online purchases and goods arriving through Kazakhstan add to the gap [4]. In Tajikistan the two sides agree on exports but not on imports [3]. Uzbekistan is the one case where the country's own figure, $17.1 billion, is higher than China's [3].</p>
 {pfig(1, "Trade with China in 2025: China's figure and the country's own, $ billion",
       columns([("China's data", D1, [r[1] for r in CA_ROWS if r[5]]), ("Country's own data", L1, [r[5] for r in CA_ROWS if r[5]])],
               [r[0] for r in CA_ROWS if r[5]], w=440, h=210, top=56, fmt="{:.1f}"), "Sources: [2]-[6].")}
