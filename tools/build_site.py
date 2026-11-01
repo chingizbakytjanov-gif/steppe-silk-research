@@ -130,9 +130,9 @@ def columns(series, labels, w=480, h=250, fmt="{:.1f}", unit="", top=None, hi=No
     return "".join(out)
 
 
-def hbars(rows, unit="", colour=GREY, fmt="{:.2f}"):
+def hbars(rows, unit="", colour=GREY, fmt="{:.2f}", top=None):
     """Horizontal bars in HTML, so long labels stay readable on phones."""
-    top = max(v for _, v in rows)
+    top = top or max(v for _, v in rows)
     items = "".join(
         f'<div class="hbar"><div class="hbar-label">{lab}</div>'
         f'<div class="hbar-track"><span style="width:{v/top*100:.1f}%;background:{colour}"></span></div>'
@@ -383,6 +383,12 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
     else:
         kv = "".join(f'<div class="fact"><div class="fact-num">{v}</div><div class="fact-label">{k}</div></div>' for k, v in facts)
         kv = f'<div class="facts">{kv}</div>' 
+    sources = list(sources) + [s for s in OWNERS.get(r["slug"], {}).get("sources", []) if s[1] not in {x[1] for x in sources}]
+    extra = compare_section(r) + owners_section(r, pre)
+    if extra and "<h2>Risks</h2>" in sections:
+        sections = sections.replace("<h2>Risks</h2>", extra + "<h2>Risks</h2>", 1)
+    elif extra:
+        sections += extra
     srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u, *_ in sources)
     cite = (f'{AUTHOR} (2026). <i>{r["title"]}</i>. Steppe &amp; Silk Research, {r["date_long"]}. '
             f'{SITE}/{r["url"]}')
@@ -403,6 +409,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
 {dl}
 </header>
 {kv}
+{article_photo(r, pre)}
 <div class="report-body">
 <h2>{"1. " if meta else ""}Summary</h2><p>{r["summary"]}</p>
 {sections}
@@ -469,6 +476,154 @@ for _v in VAL.values():
     _v["pe"] = _v["mv"] / _v["profit"]
     _v["pb"] = _v["mv"] / _v["book"] if _v["book"] else None
     _v["dy"] = _v["dps"] / _v["price"] * 100 if _v["dps"] is not None else None
+
+
+# ---------- Inside each note: a photo, the owners and a comparison with the other covered companies ----------
+
+def credit(name, page, lic, lic_url, cropped=True):
+    return (f'<a href="{page}" rel="noopener">{name}</a>, Wikimedia Commons, '
+            f'<a href="{lic_url}" rel="noopener">{lic}</a>{", cropped" if cropped else ""}')
+
+
+BYSA4, BYSA3, BY3, BY4 = ("CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"), ("CC BY-SA 3.0", "https://creativecommons.org/licenses/by-sa/3.0/"), \
+    ("CC BY 3.0", "https://creativecommons.org/licenses/by/3.0/"), ("CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/")
+CC0 = ("CC0", "https://creativecommons.org/publicdomain/zero/1.0/")
+C = "https://commons.wikimedia.org/wiki/File:"
+# slug: (file base in assets/photos, width, height, alt text, caption, author, Commons page, licence)
+ARTICLE_PHOTOS = {
+    "kaspi-hepsiburada": ("article-kaspi", 3, 2, "A red Kaspi parcel locker on a street in Astana",
+                          "A Kaspi parcel locker in Astana. Orders from the marketplace are collected from lockers like this one.",
+                          "Matti Blume", C + "Kaspi_Postomat,_Astana_(P1190696).jpg", BYSA4),
+    "halyk-bank-2026": ("article-halyk", 3, 2, "A two-storey Halyk Bank branch building", "A Halyk Bank branch.",
+                        "Nikolay Olkhovoy", C + "Halyk_Bank_-_panoramio.jpg", BY3),
+    "kazatomprom-2025": ("article-kap", 3, 2, "Drilling rigs on flat desert ground at the Inkai uranium mine",
+                         "Drilling wells at the Inkai uranium mine. Kazatomprom extracts uranium by pumping solution through wells rather than digging.",
+                         "NAC Kazatomprom JSC", C + "Inkai_Uranium_Mine_in_Kazakhstan.jpg", BYSA4),
+    "kazmunaygas-2026": ("article-kmg", 3, 2, "The KazMunayGas headquarters in Astana, two towers joined by an arch, behind flower beds",
+                         "The KazMunayGas headquarters in Astana.", "Davide Mauro", C + "KazMunayGas_03.jpg", BYSA4),
+    "air-astana-2026": ("article-aa", 3, 2, "An Air Astana Airbus A321neo on a runway", "An Air Astana Airbus A321LR at Frankfurt Airport.",
+                        "MarcelX42", C + "Frankfurt_Airport_Air_Astana_Airbus_A321-271NX_EI-KGD_(DSC01728).jpg", BYSA4),
+    "china-southern-2026": ("article-cs", 1740, 980, "A China Southern Airlines Boeing 787-9 in flight",
+                            "A China Southern Airlines Boeing 787-9, one of the wide-body aircraft it flies on international routes.",
+                            "Md Shaifuzzaman Ayon", C + "B-1128_-_China_Southern_Airlines_-_Boeing_787-9_Dreamliner_-_63982_-_VGHS.jpg", BYSA4),
+    "geely-2026": ("article-geely", 3, 2, "A grey Geely Galaxy E5 electric SUV parked on a street", "A Geely Galaxy E5, one of the Galaxy electric and hybrid models.",
+                   "JustAnotherCarDesigner", C + "Geely_Galaxy_E5_001.jpg", CC0),
+    "kazakhstan-china-trade": ("article-trade", 3, 2, "A single railway track running to the border through dry steppe at Alashankou",
+                               "The western end of China's Northern Xinjiang railway at Alashankou, across the border from Dostyk in Kazakhstan.",
+                               "Yaohua2000", C + "Western-most_end_of_Northern_Xinjiang_Railway.jpg", BYSA3),
+    "china-central-asia-2025": ("article-ca", 3, 2, "The large white terminal building of the Khorgos port of entry",
+                                "The Chinese terminal at the Khorgos border crossing with Kazakhstan.",
+                                "Akira CA", C + "New_Khorgos_Port_of_Entry.jpg", BYSA4),
+    "china-russia-trade-2025": ("article-ru", 3, 2, "A cable-stayed road bridge over the wide Amur River",
+                                "The road bridge over the Amur between Heihe in China and Blagoveshchensk in Russia, opened in 2022.",
+                                "HCCB3947", C + "View_Heihe-Blagoveshchensk_Bridge_from_the_Sightseeing_tower_of_Heilongjiang_bridge_Park.jpg", BY4),
+}
+
+
+def article_photo(r, pre):
+    ph = ARTICLE_PHOTOS.get(r["slug"])
+    if not ph:
+        return ""
+    b, w, h, alt, cap, who, pg, (lic, lu) = ph
+    return (f'<figure class="report-photo"><img src="{pre}assets/photos/{b}-1400.jpg" srcset="{pre}assets/photos/{b}-800.jpg 800w, '
+            f'{pre}assets/photos/{b}-1400.jpg 1400w" sizes="(max-width: 760px) 100vw, 720px" width="{w * 100 if w < 10 else w}" '
+            f'height="{h * 100 if h < 10 else h}" alt="{escape(alt)}" loading="lazy">'
+            f'<figcaption>{cap} Photo: {credit(who, pg, lic, lu)}.</figcaption></figure>')
+
+
+# Shareholders from the latest register or company filing. rows are % of shares in circulation; None = no breakdown published.
+OWNERS = {
+    "kaspi-hepsiburada": dict(
+        date="1 July 2026", rows=[("Mikheil Lomtadze", 23.04), ("Vyacheslav Kim", 20.06), ("Baring funds", 19.01), ("Other shareholders", 37.89)],
+        text="<p>Kaspi.kz is still run by the people who built it. Mikheil Lomtadze, the chief executive, holds 23.0% of the shares in circulation, "
+             "and Vyacheslav Kim, chairman of the board, holds 20.1%. Both are co-founders. The Baring funds hold 19.0%. "
+             "In April 2026 the Chinese technology group Tencent bought Kaspi shares from the Baring funds, together with Lomtadze and members of management.</p>",
+        sources=[("Kazakhstan Stock Exchange, Information on shares and shareholders of Kaspi.kz as of July 1, 2026", "https://kase.kz/en/information/news/show/1571110"),
+                 ("Kaspi.kz, Board of Directors (investor relations website)", "https://ir.kaspi.kz/governance/directors/"),
+                 ("Kaspi.kz, Tencent invests in Kaspi.kz alongside co-founder and CEO Mikheil Lomtadze (April 2026)",
+                  "https://www.investegate.co.uk/announcement/gnw/joint-stock-company-kaspi-kz--kspi/tencent-invests-in-kaspi-kz-alongside-co-foun-/9527756")]),
+    "halyk-bank-2026": dict(
+        date="1 July 2026", rows=[("Holding Group Almeks", 61.91), ("Bank of New York Mellon, for GDR holders", 35.02), ("Other shareholders", 3.07)],
+        text="<p>Halyk is controlled by Holding Group Almeks, which holds 61.9% of the shares in circulation. Almeks belongs to Timur Kulibayev and "
+             "Dinara Kulibayeva. Most of the remaining shares, 35.0%, are held by the Bank of New York Mellon as nominee for the holders of Halyk's "
+             "global depositary receipts, which trade in London and Astana. With about 62% of the dividend going to Almeks, the payout policy matters "
+             "as much to the controlling family as to outside investors.</p>",
+        sources=[("Kazakhstan Stock Exchange, Information on shares and shareholders of Halyk Bank of Kazakhstan as of July 1, 2026", "https://kase.kz/en/information/news/show/1571847"),
+                 ("Forbes Kazakhstan, Kulibayevs consider selling part of their stake in Halyk Bank (in Russian)",
+                  "https://forbes.kz/articles/kulibaevy-rassmatrivayut-prodazhu-chasti-svoey-doli-vhalyk-bank")]),
+    "kazatomprom-2025": dict(
+        date="July 2024, unchanged in 2026", rows=[("Samruk-Kazyna", 62.99), ("Ministry of Finance", 12.01), ("Free float", 25.0)],
+        text="<p>Kazatomprom is controlled by the state. The sovereign wealth fund Samruk-Kazyna holds 63.0%, and the Ministry of Finance holds 12.0%, "
+             "a stake bought for the National Fund from Samruk-Kazyna in July 2024. The remaining 25% trades in London and on the Astana International "
+             "Exchange. Decisions on output and dividends therefore follow the state's priorities as well as the market's.</p>",
+        sources=[("Kazatomprom, Changes in Kazatomprom's shareholding structure (London Stock Exchange announcement, July 2024)",
+                  "https://www.lse.co.uk/rns/KAP/changes-in-kazatomproms-shareholding-structure-j21sjmvz3zh7foo.html")]),
+    "kazmunaygas-2026": dict(
+        date="31 December 2025", rows=[("Samruk-Kazyna", 67.42), ("Ministry of Finance", 20.0), ("National Bank of Kazakhstan", 9.58), ("Free float", 3.0)],
+        text="<p>KMG is almost entirely state-owned. Samruk-Kazyna holds 67.4%, the Ministry of Finance 20% and the National Bank 9.6%. "
+             "Only 3% of the shares trade, on the Kazakhstan Stock Exchange and the Astana International Exchange. That small free float is one "
+             "reason the share price says little about value, as the valuation section explains.</p>",
+        sources=[("KazMunayGas, Integrated Annual Report 2025, company profile", "https://www.kmg.kz/interactive/report_2025/en/company-profile.html")]),
+    "air-astana-2026": dict(
+        date="1 July 2026", rows=[("Samruk-Kazyna", 41.0), ("Citibank, for GDR holders", 35.74), ("Other shareholders", 23.26)],
+        text="<p>Samruk-Kazyna, the sovereign wealth fund, holds 41.0% of Air Astana and is the only shareholder with more than 10% in its own name. "
+             "Citibank holds 35.7% as depositary for investors who own the airline through global depositary receipts traded in London. "
+             "BAE Systems, which founded the airline together with the Kazakh state and owned 49% before the 2024 listing, agreed in March 2026 to sell its last shares.</p>",
+        sources=[("Kazakhstan Stock Exchange, Information on shares and shareholders of Air Astana as of July 1, 2026", "https://kase.kz/en/information/news/show/1572172"),
+                 ("Interfax, BAE Systems to sell remaining stake in Air Astana (19 March 2026)", "https://interfax.com/newsroom/top-stories/116700/"),
+                 ("FlightGlobal, Air Astana co-founder BAE Systems exits carrier after nearly 25 years",
+                  "https://www.flightglobal.com/airlines/air-astana-co-founder-bae-systems-exits-carrier-after-nearly-25-years/166711.article")]),
+    "geely-2026": dict(
+        date="30 June 2026", rows=None,
+        text="<p>Geely Automobile is controlled by its founder, Li Shufu. The company describes him as its controlling shareholder and single largest "
+             "beneficial shareholder at 30 June 2026. He also controls Zhejiang Geely Holding Group, the parent group, and the subsidiaries Geely "
+             "Automobile bought from it in 2026 were accounted for as businesses under his common control. Li is chairman of the board; Gui Sheng Yue "
+             "is chief executive. The company's own announcement does not give his percentage, so none is shown here.</p>",
+        sources=[("Geely Automobile Holdings, Announcement of interim results for the six months ended 30 June 2026 (HKEXnews, 17 August 2026)",
+                  "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0817/2026081700257.pdf")]),
+    "china-southern-2026": dict(
+        date="30 June 2026", rows=[("China Southern Air Holding, A shares", 51.90), ("China Southern Air Holding, H shares", 14.62), ("Other shareholders", 33.48)],
+        text="<p>China Southern Airlines is controlled by China Southern Air Holding, a state-owned company. It holds 51.9% directly in A shares listed "
+             "in Shanghai and another 14.6% in Hong Kong H shares through its subsidiaries Nan Lung Holding and Perfect Lines, 66.5% in all.</p>",
+        sources=[("China Southern Airlines, Interim Report 2026 (HKEXnews, 28 August 2026), shareholders section",
+                  "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0828/2026082803260.pdf")]),
+}
+VAL_KEY = {"kaspi-hepsiburada": "KSPI", "halyk-bank-2026": "HSBK", "kazatomprom-2025": "KZAP", "kazmunaygas-2026": "KMGZ",
+           "air-astana-2026": "AIRA", "geely-2026": "G175", "china-southern-2026": "CS1055"}
+
+
+def owners_section(r, pre):
+    o = OWNERS.get(r["slug"])
+    if not o:
+        return ""
+    links = "; ".join(f'<a href="{u}" rel="noopener">{escape(n.split(",")[0])}</a>' for n, u in o["sources"])
+    chart = ""
+    if o["rows"]:
+        chart = (f'<figure class="figure"><div class="fig-title">Who owns the company, % of shares in circulation, {o["date"]}</div>'
+                 f'{hbars(o["rows"], unit="%", colour=CHART_HI, fmt="{:.1f}", top=100)}<figcaption>Source: {links}.</figcaption></figure>')
+    else:
+        chart = f'<p class="table-note">Source: {links}.</p>'
+    return f'<h2>Who owns the company</h2>{o["text"]}{chart}'
+
+
+def compare_section(r):
+    key = VAL_KEY.get(r["slug"])
+    if not key:
+        return ""
+    order = sorted(VAL, key=lambda k: VAL[k]["pe"])
+    rows = []
+    for k in order:
+        v = VAL[k]
+        rows.append([("**" if k == key else "") + v["name"], f'{v["usd"]:.1f}', f'{v["pe"]:.1f}',
+                     f'{v["pb"]:.2f}' if v["pb"] else "n/a", f'{v["dy"]:.1f}%' if v["dy"] is not None else "none"])
+    rank = order.index(key) + 1
+    words = ["cheapest", "second cheapest", "third cheapest", "fourth cheapest", "third most expensive", "second most expensive", "most expensive"]
+    return (f'<h2>How it compares</h2><p>Of the seven companies covered on this site, {VAL[key]["name"]} is the {words[rank - 1]} '
+            f'by price to 2025 profit. The table ranks them from lowest to highest.</p>'
+            f'<div class="table-title">The seven covered companies at the close on {PRICE_DATE}</div>'
+            + table(["Company", "Market value, US$ bn", "P/E", "P/B", "Dividend yield"], rows, cls="compare")
+            + '<p class="table-note">P/E is the market value divided by 2025 profit; P/B uses the latest reported equity, where shown in the notes. '
+              'A low P/E can mean a cheap share or a profit the market expects to fall. Sources: KASE; Stock Analysis; National Bank of Kazakhstan exchange rates.</p>')
 
 
 def val_table(key, n, extra=()):
@@ -1877,7 +2032,7 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence. Research page photos, all via Wikimedia Commons and cropped: central Astana by Ken and Nyetta, licensed CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); Port of Aktau by Ashina, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), the cropped version shared under the same licence; Esentai Tower by Xcite, CC0.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence. Photos inside the reports are from Wikimedia Commons and credited under each photo, with their licences. Research page photos, all via Wikimedia Commons and cropped: central Astana by Ken and Nyetta, licensed CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); Port of Aktau by Ashina, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), the cropped version shared under the same licence; Esentai Tower by Xcite, CC0.</p>
 <p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>

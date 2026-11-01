@@ -287,3 +287,15 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .hero + .block { padding-top: 0; }
 .hero + .block .rows { border-top: 1px solid var(--ink); }
 @media (max-width: 760px) { .hero-research { min-height: 380px; } .hero-research .wrap { padding-bottom: 90px; } .hero-research .hero-img { object-position: center 60%; } }
+
+/* Lighter headings (2 Nov 2026): titles at medium weight instead of bold */
+.report-head h1, .masthead h1, .page-head h1, .hero h1 { font-weight: 500; letter-spacing: -0.015em; }
+.row h3, .card-body h3, .featured-text h2, .report-body h2, .prose h2 { font-weight: 500; }
+.fact-num { font-weight: 500; }
+.number b { font-weight: 600; }
+
+/* Photo near the top of each report, and the comparison table */
+.report-photo { margin: 28px 0 8px; max-width: 720px; }
+.report-photo img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.report-photo figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+.data-table.compare tr.total td { border-top: 0; background: var(--tint); font-weight: 600; }
