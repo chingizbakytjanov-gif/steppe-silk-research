@@ -30,3 +30,13 @@
   var start = document.querySelector('.filters button[data-f="' + location.hash.slice(1) + '"]');
   if (start) start.click();
 })();
+// Learn: diagrams start their animation when they scroll into view
+(function () {
+  var els = document.querySelectorAll('.learn-anim');
+  if (!els.length) return;
+  if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('play'); }); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('play'); io.unobserve(en.target); } });
+  }, { threshold: 0.35 });
+  els.forEach(function (e) { io.observe(e); });
+})();

@@ -385,24 +385,10 @@ def _anchor(s):
 
 
 def add_aside(body, r, pre, n_sources):
-    """Sidebar on wide screens: contents, the data behind the note and (filled in later) related reports."""
-    heads = []
-    def h2(m):
-        text = m.group(1)
-        a = _anchor(text)
-        heads.append((a, re.sub(r"<[^>]+>", "", text)))
-        return f'<h2 id="{a}">{text}</h2>'
-    body = re.sub(r"<h2>(.*?)</h2>", h2, body)
-    skip = {"Download", "How to cite"}
-    toc = "".join(f'<li><a href="#{a}">{t}</a></li>' for a, t in heads if t not in skip)
-    figs, tabs = body.count('class="fig-title"'), body.count('class="table-title"')
-    aside = (f'<aside class="report-aside"><div class="aside-box"><div class="aside-label">Contents</div><ol class="aside-toc">{toc}</ol></div>'
-             f'<div class="aside-box"><div class="aside-label">In this {"brief" if r["tag"] == "Trade" else "note"}</div>'
-             f'<dl class="aside-stats"><div><dt>Figures and charts</dt><dd>{figs}</dd></div>'
-             f'<div><dt>Tables</dt><dd>{tabs}</dd></div><div><dt>Sources</dt><dd>{n_sources}</dd></div></dl>'
-             f'<div class="aside-dl"><a href="{pre}{r["data"]}.xlsx" download>Data, XLSX</a><a href="{pre}{r["data"]}.csv" download>Data, CSV</a>'
-             + (f'<a href="{pre}{r["pdf"]}" download>Full report, PDF</a>' if r.get("pdf") else "") + '</div></div>'
-             '<!--RELATED--></aside>')
+    """Sidebar on wide screens: a company card, illustrated facts, then (filled in after NEWS) news and related reports."""
+    body = re.sub(r"<h2>(.*?)</h2>", lambda m: f'<h2 id="{_anchor(m.group(1))}">{m.group(1)}</h2>', body)
+    facts = "".join(fact_card(c, pre) for c in FACT_CARDS.get(r["slug"], []))
+    aside = f'<aside class="report-aside">{company_card(r, pre)}{facts}<!--NEWS--><!--RELATED--></aside>'
     return body.replace("<!--ASIDE-->", aside)
 
 
@@ -567,6 +553,134 @@ def article_photo(r, pre):
             f'{pre}assets/photos/{b}-1400.jpg 1400w" sizes="(max-width: 760px) 100vw, 720px" width="{w * 100 if w < 10 else w}" '
             f'height="{h * 100 if h < 10 else h}" alt="{escape(alt)}" loading="lazy">'
             f'<figcaption>{cap} Photo: {credit(who, pg, lic, lu)}.</figcaption></figure>')
+
+
+FACT_CARDS = {  # slug: [(image key or chart:name, what the picture shows, fact, source list entry, credit or None)]
+    "kaspi-hepsiburada": [
+        ('kaspi-card', 'A Kaspi Gold card design',
+         '<b>15.7 million</b> people used the Kaspi app each month at the end of 2025, and 68% of them opened it every day.',
+         "SRC_KASPI[0]", ('Alibaliev', 'https://commons.wikimedia.org/wiki/File:%D0%9A%D0%B0%D1%80%D1%82%D0%B0_Kaspi_Gold.png', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+        ('hepsi', "Hepsiburada's operations centre in Gebze, Turkey",
+         'Kaspi owns <b>85%</b> of Hepsiburada. In 2025 the Turkish business added ₸1.03 trillion of revenue and lost ₸93 billion.',
+         "SRC_KASPI[0]", ('Tolgarda', 'https://commons.wikimedia.org/wiki/File:Gebze_Operasyon_Merkezi.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+    "halyk-bank-2026": [
+        ('halyk-branch', 'A Halyk Bank branch',
+         "Halyk is Kazakhstan's largest bank, with total assets of <b>₸20.9 trillion</b> at the end of 2025.",
+         "SRC_HALYK[0]", ('Uralsk Review', 'https://commons.wikimedia.org/wiki/File:%D0%9E%D1%82%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5_Halyk_Bank_-_panoramio.jpg', 'CC BY 3.0', 'https://creativecommons.org/licenses/by/3.0')),
+        ('tenge2000', 'A 2,000-tenge banknote',
+         'For 2025 Halyk paid <b>₸58.19</b> a share in dividends, a yield of 15.6% at the price of 30 October 2026.',
+         "SRC_HALYK[3]", ('National Bank of Kazakhstan', 'https://commons.wikimedia.org/wiki/File:KZ2000KZT2012averse.jpg', 'Public domain', '')),
+    ],
+    "kazatomprom-2025": [
+        ('karatau', "Kazatomprom's Karatau mine",
+         "Kazatomprom is the world's largest uranium producer: <b>25,839 tonnes</b> in 2025, counting its joint ventures in full.",
+         "SRC_KAP[0]", ('NAC Kazatomprom JSC', 'https://commons.wikimedia.org/wiki/File:Kazatomprom_Karatau_Mine.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+        ('baiken', 'The Baiken uranium mine',
+         "Buyers in Asia took <b>56%</b> of Kazatomprom's uranium sales in 2025, up from 45% in 2023.",
+         "SRC_KAP[0]", ('NAC Kazatomprom JSC', 'https://commons.wikimedia.org/wiki/File:Baiken_Mine_Site_-_Kazakhstan.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+    "kazmunaygas-2026": [
+        ('kashagan', "Kashagan's artificial island in the Caspian Sea, seen from orbit in 2016",
+         'KMG owns <b>16.88%</b> of Kashagan, 20% of Tengizchevroil and 10% of Karachaganak, the three large projects run by foreign companies.',
+         "SRC_KMG[0]", ('Planet Labs, Inc.', 'https://commons.wikimedia.org/wiki/File:Kashagan_Oil_Field,_Kazakhstan_by_Planet_Labs.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+        ('chart:brent', 'Average Brent price, $ per barrel',
+         "Brent averaged <b>$92.31</b> in the first half of 2026, and KMG's net profit rose 69%.",
+         "SRC_KMG[1]", None),
+    ],
+    "air-astana-2026": [
+        ('flyarystan', 'A FlyArystan Airbus A320 in Almaty',
+         "The weaker tenge cost FlyArystan, which earns mostly in tenge, about <b>$18.4 million</b> in 2025, by the company's estimate.",
+         "SRC_AA[0]", ('Sibom', 'https://commons.wikimedia.org/wiki/File:FlyArystan_Almatyda.jpg', 'CC0', 'http://creativecommons.org/publicdomain/zero/1.0/')),
+        ('aa-lhr', 'An Air Astana A321LR at London Heathrow',
+         'Air Astana flew up to <b>51</b> times a week to China in summer 2026, against 16 in 2024.',
+         "SRC_AA[1]", ('DaHuzyBru', 'https://commons.wikimedia.org/wiki/File:Air_Astana_Airbus_A321-271NX_EI-KGE_at_LHR_01.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+    "china-southern-2026": [
+        ('cs-a350', 'A China Southern Airbus A350-900',
+         'International revenue grew <b>64%</b> in two years, to RMB57.6 billion in 2025.',
+         "SRC_CS[0]", ('Md Shaifuzzaman Ayon', 'https://commons.wikimedia.org/wiki/File:B-30EA_-_China_Southern_Airlines_-_Airbus_A350-941_-_398_-_VGHS.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+        ('can-t2', "Terminal 2 at Guangzhou Baiyun airport, the airline's home base",
+         'Jet fuel cost <b>RMB34.9 billion</b> in the first half of 2026, against RMB25.3 billion a year earlier.',
+         "SRC_CS[1]", ('Suikotei', 'https://commons.wikimedia.org/wiki/File:Guangzhou_Baiyun_International_Airport_Terminal_2_201807.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+    "geely-2026": [
+        ('zeekr', 'A Zeekr 001',
+         'Geely took full control of Zeekr in <b>December 2025</b>, offering US$2.687 in cash or 1.23 Geely shares for each Zeekr share.',
+         "SRC_GEELY[0]", ('JustAnotherCarDesigner', 'https://commons.wikimedia.org/wiki/File:Zeekr_001_facelift_001.jpg', 'CC0', 'http://creativecommons.org/publicdomain/zero/1.0/')),
+        ('monjaro', 'A Geely Monjaro built for the Russian market',
+         "Geely's exports rose <b>158%</b> in the first half of 2026 while China's car market shrank by a quarter.",
+         "SRC_GEELY[1]", ('Milhouse35', 'https://commons.wikimedia.org/wiki/File:Geely_Monjaro.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+    "kazakhstan-china-trade": [
+        ('khorgas', 'The Chinese side of the Khorgas border crossing',
+         'China counted <b>$48.7 billion</b> of trade with Kazakhstan in 2025; Kazakhstan counted $34.1 billion.',
+         "SRC_TRADE[8]", ('Purplepumpkins', 'https://commons.wikimedia.org/wiki/File:Chinese-Kazakh_Khorgas_border.jpg', 'CC BY-SA 3.0', 'https://creativecommons.org/licenses/by-sa/3.0')),
+        ('tenge1000', 'A 1,000-tenge banknote',
+         "China's share of Kazakhstan's foreign trade rose to <b>23.7%</b> in 2025, from 21.2% a year earlier.",
+         "SRC_TRADE[1]", ('National Bank of Kazakhstan', 'https://commons.wikimedia.org/wiki/File:KZ1000KZT2014averse.jpg', 'Public domain', '')),
+    ],
+    "china-central-asia-2025": [
+        ('ca-pipeline', 'Route of the Central Asia-China gas pipeline',
+         'Turkmenistan sold China <b>$8.4 billion</b> of goods in 2025, almost all of it gas: the only Central Asian country with a surplus.',
+         "SRC_CA[2]", ('Thingg⊕⊗', 'https://commons.wikimedia.org/wiki/File:CentralAsiaChinapipeline.png', 'CC BY-SA 3.0', 'https://creativecommons.org/licenses/by-sa/3.0')),
+        ('khorgos-town', 'Khorgos, the Chinese border town facing Kazakhstan',
+         'Kyrgyzstan records <b>$4.97 billion</b> of trade with China. China records $27.2 billion.',
+         "SRC_CA[3]", ('Akira CA', 'https://commons.wikimedia.org/wiki/File:Downtown_Khorgos.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+    "china-russia-trade-2025": [
+        ('haval', 'A Haval H9, a Chinese SUV, in Moscow',
+         "China's vehicle exports to Russia fell from <b>$25.5 billion</b> in 2024 to $13.1 billion in 2025.",
+         "SRC_RU[2]", ('Retired electrician', 'https://commons.wikimedia.org/wiki/File:Moscow,_Haval_H9,_Aug_2025_01.jpg', 'CC0', 'http://creativecommons.org/publicdomain/zero/1.0/')),
+        ('zabaykalsk', 'Zabaykalsk in Russia, seen from Manzhouli in China',
+         "Oil, gas and coal made up <b>$78.7 billion</b> of China's $124.8 billion of imports from Russia in 2025.",
+         "SRC_RU[3]", ('Liuxingy', 'https://commons.wikimedia.org/wiki/File:Viewing_Zabaykalsk,_Zabaykalsky_Krai,_Russia_from_Manzhouli,_Inner_Mongolia,_China_01.jpg', 'CC BY-SA 4.0', 'https://creativecommons.org/licenses/by-sa/4.0')),
+    ],
+}
+LISTED = {"kaspi-hepsiburada": "Nasdaq, KASE", "halyk-bank-2026": "KASE, AIX, London (GDRs)", "kazatomprom-2025": "KASE, AIX, London (GDRs)",
+          "kazmunaygas-2026": "KASE, AIX", "air-astana-2026": "KASE, AIX, London (GDRs)", "geely-2026": "Hong Kong",
+          "china-southern-2026": "Shanghai, Hong Kong"}
+
+
+def _src(ref):
+    """'SRC_KMG[1]' -> that source tuple (the lists are defined further down the file)."""
+    name, i = ref.rstrip("]").split("[")
+    return globals()[name][int(i)]
+
+
+def mini_bars(values, labels, hi=None):
+    top = max(values)
+    bars = "".join(f'<div class="mb"><span class="mb-v">{v:.0f}</span><span class="mb-bar{" hi" if i == hi else ""}" style="height:{v / top * 70:.0f}px"></span>'
+                   f'<span class="mb-l">{l}</span></div>' for i, (v, l) in enumerate(zip(values, labels)))
+    return f'<div class="minibars">{bars}</div>'
+
+
+def fact_card(c, pre):
+    key, cap, fact, ref, cr = c
+    name, url = _src(ref)[:2]
+    if key == "chart:brent":
+        pic = mini_bars(M_BRENT + [M_H1["brent"][1]], ["2023", "2024", "2025", "1H26"], hi=3)
+    else:
+        pic = f'<img src="{pre}assets/photos/fact-{key}.jpg" width="640" height="420" alt="{escape(cap)}" loading="lazy">'
+    credit_html = f'<span class="fc-credit">Photo: {credit(cr[0], cr[1], cr[2], cr[3], cropped=False)}</span>' if cr else ""
+    return (f'<figure class="fact-card"><div class="fc-pic">{pic}</div><figcaption><span class="fc-cap">{cap}</span>'
+            f'<div class="aside-label">Did you know</div><p>{fact}</p><a class="fc-src" href="{url}" rel="noopener">Source: {escape(name.split(",")[0])}</a>'
+            f'{credit_html}</figcaption></figure>')
+
+
+def company_card(r, pre):
+    key = VAL_KEY.get(r["slug"])
+    if not key:
+        head = flag_imgs(r.get("flags", []), pre)
+        return f'<div class="co-card"><div class="co-flags">{head}</div><div class="co-kind">{kind_label(r)}</div></div>'
+    v, o = VAL[key], OWNERS.get(r["slug"], {})
+    top = o["rows"][0] if o.get("rows") else None
+    owner = f'{top[0]}, {top[1]:.0f}%' if top else "Li Shufu (controlling)"
+    logos = "".join(f'<img src="{pre}assets/logos/{logo_src(l)}" alt="{escape(n)} logo">' for l, n in r.get("logos", [])[:1])
+    rows = [("Market value", f'${v["usd"]:.1f} bn' if v["usd"] >= 1 else f'${v["usd"] * 1000:.0f} mn'), ("P/E, 2025", f'{v["pe"]:.1f}'),
+            ("Largest owner", owner), ("Listed on", LISTED.get(r["slug"], ""))]
+    return (f'<div class="co-card"><div class="co-logo">{logos}</div><dl>' + "".join(f'<div><dt>{a}</dt><dd>{b}</dd></div>' for a, b in rows)
+            + f'</dl><div class="co-date">Prices at the close on {PRICE_DATE}</div></div>')
 
 
 # Shareholders from the latest register or company filing. rows are % of shares in circulation; None = no breakdown published.
@@ -1817,14 +1931,6 @@ data_files("data/valuation-2026-10-30", f"Valuation of the companies covered, at
                "" if v["pb"] is None else round(v["pb"], 2), "" if v["dy"] is None else round(v["dy"], 1)] for v in VAL.values()])])
 
 REPORTS = [KMG, AA, CS, GEELY, RU, KAP, CA, HALYK, TRADE, KASPI]  # newest first; the first one is featured on the home page
-for _r in REPORTS:  # related reports in each sidebar: same kind first, then the rest, newest first
-    _rel = [x for x in REPORTS if x is not _r and x["tag"] == _r["tag"]][:3] + [x for x in REPORTS if x is not _r and x["tag"] != _r["tag"]][:1]
-    _box = ('<div class="aside-box"><div class="aside-label">Related research</div><ul class="aside-rel">'
-            + "".join(f'<li><a href="../{x["url"]}"><span>{kind_label(x)}</span>{x["title"]}</a></li>' for x in _rel) + '</ul></div>')
-    _f = os.path.join(OUT, _r["url"])
-    with open(_f) as _h:
-        _html = _h.read()
-    write(_r["url"], _html.replace("<!--RELATED-->", _box))
 
 
 # ---------- Home ----------
@@ -2149,6 +2255,19 @@ of company rankings, and central bank decisions. Each brief gives the figures, t
 page("news.html", "News · Steppe & Silk Research", news, "news.html",
      "Briefs on world and Central Asian finance: failed deals, sharp share moves, company rankings and central bank decisions.")
 
+for _r in REPORTS:  # finish each report's sidebar: related news, then related research with pictures
+    _news = [n for n in NEWS if n["related"] and _r["slug"] in n["related"]]
+    _nbox = ("" if not _news else '<div class="aside-card"><div class="aside-label">In the news</div>' + "".join(
+        f'<a class="news-mini" href="../news.html#{n["id"]}"><time>{n["date"]}</time><span>{n["title"]}</span></a>' for n in _news) + "</div>")
+    _rel = [x for x in REPORTS if x is not _r and x["tag"] == _r["tag"]][:2] + [x for x in REPORTS if x is not _r and x["tag"] != _r["tag"]][:1]
+    _rbox = ('<div class="aside-card"><div class="aside-label">Related research</div>' + "".join(
+        f'<a class="rel-card" href="../{x["url"]}"><img src="../assets/photos/{ARTICLE_PHOTOS[x["slug"]][0]}-800.jpg" alt="" loading="lazy">'
+        f'<span class="rel-kind">{kind_label(x)}</span><span class="rel-title">{x["title"]}</span></a>' for x in _rel) + "</div>")
+    _f = os.path.join(OUT, _r["url"])
+    with open(_f) as _h:
+        _html = _h.read()
+    write(_r["url"], _html.replace("<!--NEWS-->", _nbox).replace("<!--RELATED-->", _rbox))
+
 
 # ---------- Learn ----------
 # A short course and a glossary. Examples point to figures already published on the site.
@@ -2278,24 +2397,157 @@ LEARN_REFS = [
     ("CFA Institute", "https://www.cfainstitute.org/"),
 ]
 
-lesson_nav = "".join(f'<li><a href="#{a}"><span>{i:02d}</span>{t}</a></li>' for i, (a, t, _) in enumerate(LESSONS, 1))
-lessons_html = "".join(f'<section class="lesson" id="{a}"><div class="lesson-num">Lesson {i:02d}</div><h2>{t}</h2>{body}</section>'
-                       for i, (a, t, body) in enumerate(LESSONS, 1))
-glossary_html = "".join(f'<div class="gloss-row" id="term-{_anchor(k)}"><dt>{k}</dt><dd>{v}</dd></div>' for k, v in GLOSSARY)
-learn = f'''<section class="page-head"><div class="wrap">
-<div class="label">Learn</div>
+# Learn, version 2: its own palette (blue, green, violet), animated diagrams that play when they scroll into view,
+# photos and a question at the end of each lesson. The lesson texts are in LESSONS above.
+
+LESSON_COLOURS = ["#2f5bea", "#0f9d76", "#7457f5", "#0e8fb0", "#4b56d2", "#13a06b"]
+
+
+def ill_money_flow():
+    nodes = [(90, "Savers", "deposit money"), (320, "Bank", "pools and lends"), (550, "Borrowers", "firms, families")]
+    circ = "".join(f'<g><circle cx="{x}" cy="110" r="44" class="node"/><text x="{x}" y="106" class="node-t">{n}</text>'
+                   f'<text x="{x}" y="124" class="node-s">{s}</text></g>' for x, n, s in nodes)
+    top1, top2 = "M134,96 C190,40 250,40 276,96", "M364,96 C420,40 480,40 506,96"
+    back = "M550,154 C450,215 190,215 90,154"
+    dots = "".join(f'<circle r="6" class="dot {c}"><animateMotion dur="{d}s" begin="{b}s" repeatCount="indefinite" path="{p}"/></circle>'
+                   for p, c, d, b in [(top1, "d1", 2.4, 0), (top1, "d1", 2.4, 1.2), (top2, "d2", 2.4, .6), (top2, "d2", 2.4, 1.8),
+                                      (back, "d3", 4, 0), (back, "d3", 4, 2)])
+    return (f'<svg viewBox="0 0 640 230" class="ill" role="img" aria-label="Money flows from savers to a bank to borrowers, and interest flows back">'
+            f'<path d="{top1}" class="flow"/><path d="{top2}" class="flow"/><path d="{back}" class="flow back"/>'
+            f'<text x="205" y="40" class="lab">deposits</text><text x="435" y="40" class="lab">loans</text>'
+            f'<text x="320" y="222" class="lab">interest flows back</text>{circ}{dots}</svg>')
+
+
+def ill_balance():
+    # Kaspi-free, generic: the two sides of the balance sheet always match
+    return ('<svg viewBox="0 0 640 230" class="ill" role="img" aria-label="Assets equal liabilities plus equity">'
+            '<g class="grow"><rect x="130" y="30" width="120" height="170" class="bar a"/></g>'
+            '<text x="190" y="120" class="bar-t">Assets</text><text x="320" y="125" class="eq">=</text>'
+            '<g class="grow g2"><rect x="390" y="95" width="120" height="105" class="bar l"/><rect x="390" y="30" width="120" height="63" class="bar e"/></g>'
+            '<text x="450" y="152" class="bar-t">Liabilities</text><text x="450" y="66" class="bar-t">Equity</text>'
+            '<line x1="100" y1="200" x2="540" y2="200" class="base"/>'
+            '<text x="190" y="222" class="lab">what the company owns</text><text x="450" y="222" class="lab">who paid for it</text></svg>')
+
+
+def ill_pe():
+    order = sorted(VAL, key=lambda k: VAL[k]["pe"])
+    top = max(VAL[k]["pe"] for k in order)
+    rows = "".join(f'<g transform="translate(0,{18 + i * 29})"><text x="168" y="15" class="pe-n">{VAL[k]["name"].replace(" Automobile", "").replace(" Airlines", "")}</text>'
+                   f'<rect x="178" y="2" height="18" width="{VAL[k]["pe"] / top * 380:.0f}" class="pe-bar" style="animation-delay:{i * .12:.2f}s"/>'
+                   f'<text x="{186 + VAL[k]["pe"] / top * 380:.0f}" y="16" class="pe-v">{VAL[k]["pe"]:.1f}</text></g>' for i, k in enumerate(order))
+    return (f'<svg viewBox="0 0 640 230" class="ill" role="img" aria-label="Price to earnings ratios of the seven companies covered">{rows}'
+            f'<text x="178" y="226" class="lab-l">Price to 2025 profit, at the close on {PRICE_DATE}</text></svg>')
+
+
+def ill_gauge():
+    import math
+    def pt(v, r):
+        a = math.pi * (1 - v / 20)
+        return 320 + r * math.cos(a), 190 - r * math.sin(a)
+    ticks = "".join(f'<line x1="{pt(v, 128)[0]:.1f}" y1="{pt(v, 128)[1]:.1f}" x2="{pt(v, 142)[0]:.1f}" y2="{pt(v, 142)[1]:.1f}" class="tick"/>'
+                    f'<text x="{pt(v, 158)[0]:.1f}" y="{pt(v, 158)[1] + 4:.1f}" class="tick-t">{v}%</text>' for v in range(0, 21, 5))
+    a0, a1 = 90 - 16.25 / 20 * 180, 90 - 15.75 / 20 * 180   # needle angles from vertical, degrees (negative = right)
+    return ('<svg viewBox="0 0 640 230" class="ill" role="img" aria-label="Base rate gauge moving from 16.25% to 15.75%">'
+            f'<path d="M{pt(0, 120)[0]:.0f},{pt(0, 120)[1]:.0f} A120,120 0 0 1 {pt(20, 120)[0]:.0f},{pt(20, 120)[1]:.0f}" class="arc"/>{ticks}'
+            f'<g class="needle" style="--a0:{-a0:.1f}deg;--a1:{-a1:.1f}deg"><line x1="320" y1="190" x2="320" y2="84" /><circle cx="320" cy="190" r="9"/></g>'
+            '<text x="320" y="222" class="lab">National Bank of Kazakhstan base rate: 16.25% to 15.75%, 23 October 2026</text></svg>')
+
+
+def ill_roles():
+    return ('<svg viewBox="0 0 640 230" class="ill" role="img" aria-label="Audit checks the accounts, consulting advises, investment banking raises money">'
+            '<g transform="translate(40,20)"><rect width="160" height="170" rx="10" class="card c1"/><rect x="34" y="28" width="70" height="92" rx="4" class="doc"/>'
+            '<line x1="46" y1="48" x2="92" y2="48" class="dl"/><line x1="46" y1="62" x2="92" y2="62" class="dl"/><line x1="46" y1="76" x2="80" y2="76" class="dl"/>'
+            '<g class="lens"><circle cx="96" cy="88" r="20" class="lens-c"/><line x1="110" y1="102" x2="128" y2="120" class="lens-h"/></g>'
+            '<text x="80" y="150" class="role">Audit</text><text x="80" y="166" class="role-s">checks the numbers</text></g>'
+            '<g transform="translate(240,20)"><rect width="160" height="170" rx="10" class="card c2"/>'
+            '<rect x="38" y="90" width="18" height="30" class="cb"/><rect x="64" y="70" width="18" height="50" class="cb"/><rect x="90" y="50" width="18" height="70" class="cb cb3"/>'
+            '<path d="M36,62 L60,52 L84,40 L118,26" class="trend"/><text x="80" y="150" class="role">Consulting</text><text x="80" y="166" class="role-s">advises on strategy</text></g>'
+            '<g transform="translate(440,20)"><rect width="160" height="170" rx="10" class="card c3"/>'
+            '<circle cx="58" cy="72" r="22" class="co"/><circle cx="102" cy="72" r="22" class="co co2"/><path d="M50,112 L110,112" class="arrow"/>'
+            '<text x="80" y="150" class="role">Investment bank</text><text x="80" y="166" class="role-s">raises money, M&amp;A</text></g></svg>')
+
+
+def ill_trade_map():
+    pts = {"Russia": (445, 50, 38), "Kazakhstan": (240, 100, 42), "China": (485, 165, 46), "Central Asia": (120, 178, 42)}
+    circles = "".join(f'<circle cx="{x}" cy="{y}" r="{r}" class="cty"/><text x="{x}" y="{y + 4}" class="cty-t">{n}</text>' for n, (x, y, r) in pts.items())
+    arcs = [("M462,85 Q500,100 488,119", "$228.1 bn", 548, 104, "China-Russia"),
+            ("M282,104 Q380,96 444,146", "$34.1 bn", 368, 92, "Kazakhstan-China, Kazakh data"),
+            ("M162,186 Q310,222 440,180", "$106.3 bn", 300, 222, "China-Central Asia")]
+    a = "".join(f'<path d="{d}" class="route"/><text x="{lx}" y="{ly}" class="route-t">{v}</text>' for d, v, lx, ly, _ in arcs)
+    return (f'<svg viewBox="0 0 640 230" class="ill" role="img" aria-label="Trade flows in 2025: China-Russia $228.1 billion, China-Central Asia $106.3 billion, Kazakhstan-China $34.1 billion">'
+            f'{a}{circles}<text x="20" y="24" class="lab-l">Goods trade in 2025</text></svg>')
+
+
+ILLUSTRATIONS = {"what-finance-is": ill_money_flow, "company-accounts": ill_balance, "valuation": ill_pe,
+                 "banks-and-central-banks": ill_gauge, "audit-consulting-banking": ill_roles, "global-finance": ill_trade_map}
+
+PD = ("Public domain", "https://commons.wikimedia.org/wiki/Commons:Licensing")
+LEARN_PHOTOS = {
+    "what-finance-is": ("learn-tenge2000", "A 2,000-tenge banknote. Money is the unit in which all of finance is measured.",
+                        ("National Bank of Kazakhstan", C + "KZ2000KZT2012averse.jpg") + PD),
+    "valuation": ("learn-fse", "The trading floor of the Frankfurt Stock Exchange, where share prices are set during the day.",
+                  ("Ank Kumar", C + "Frankfurt_Stock_Exchange_(Ank_Kumar)_02.jpg") + BYSA4),
+    "banks-and-central-banks": ("learn-nbk", "The National Bank of Kazakhstan building in Almaty.",
+                                ("МаратД", C + "The_building_of_the_National_Bank_of_the_Republic_of_Kazakhstan_in_Almaty.jpg") + BYSA4),
+    "audit-consulting-banking": ("learn-aix", "The Astana International Exchange, where Air Astana and Kazatomprom have listed shares.",
+                                 ("Lauraqqqqq", C + "Astana_International_Exchange.jpg") + BYSA4),
+    "global-finance": ("learn-ship", "A container ship being unloaded at the Port of Los Angeles. Most world trade travels by sea.",
+                       ("Downtowngal", C + "Container_ship_NYK_Themis_at_the_Port_of_Los_Angeles.jpg") + BYSA4),
+}
+
+QUIZ = {
+    "what-finance-is": ("Who earns the interest a borrower pays?",
+                        "Mostly the bank. It passes part of it to savers as interest on their deposits and keeps the difference as its income."),
+    "company-accounts": ("A company reports a profit, but its cash falls. How can both be true?",
+                         "Profit counts a sale when it is made; cash counts money when it arrives. Late-paying customers or heavy spending on equipment "
+                         "can lower cash while profit stays positive."),
+    "valuation": ("Halyk trades at 3.8 times profit and China Southern at 48.9. Is Halyk the better company?",
+                  "Not on this evidence alone. Halyk's profit is high and may fall as margins shrink; China Southern's 2025 profit was unusually "
+                  "small after years of losses. The ratio tells you which questions to ask."),
+    "banks-and-central-banks": ("Why can higher reserve requirements reduce a bank's margin?",
+                                "More of the bank's money must sit at the central bank, where it earns little, so less of it can be lent out at higher rates."),
+    "audit-consulting-banking": ("Who prepares a company's accounts: the auditor or management?",
+                                 "Management. The auditor tests the accounts and gives an opinion on them."),
+    "global-finance": ("If the tenge weakens, what happens to the price of Chinese goods in Kazakhstan?",
+                       "They become more expensive in tenge, which tends to reduce imports, while Kazakh exports become cheaper for foreign buyers."),
+}
+
+
+def lesson_block(i, a, title, body):
+    col = LESSON_COLOURS[(i - 1) % len(LESSON_COLOURS)]
+    ph = LEARN_PHOTOS.get(a)
+    photo = ""
+    if ph:
+        b, cap, (who, pg, lic, lu) = ph
+        photo = (f'<figure class="learn-photo"><img src="assets/photos/{b}.jpg" width="1400" height="700" alt="{escape(cap)}" loading="lazy">'
+                 f'<figcaption>{cap} Photo: {credit(who, pg, lic, lu, cropped=True)}.</figcaption></figure>')
+    q, ans = QUIZ[a]
+    return (f'<section class="lesson" id="{a}" style="--lc:{col}"><div class="lesson-head"><span class="lesson-badge">{i:02d}</span>'
+            f'<div><div class="lesson-num">Lesson {i:02d} of {len(LESSONS)}</div><h2>{title}</h2></div></div>'
+            f'<div class="learn-anim">{ILLUSTRATIONS[a]()}</div>{body}{photo}'
+            f'<details class="quiz"><summary><span>Check yourself</span>{q}</summary><p>{ans}</p></details></section>')
+
+
+lesson_cards = "".join(f'<a class="lesson-card" href="#{a}" style="--lc:{LESSON_COLOURS[(i - 1) % 6]}"><span class="lc-num">{i:02d}</span>'
+                       f'<span class="lc-title">{t}</span></a>' for i, (a, t, _) in enumerate(LESSONS, 1))
+lessons_html = "".join(lesson_block(i, a, t, body) for i, (a, t, body) in enumerate(LESSONS, 1))
+glossary_html = "".join(f'<div class="gloss-card" id="term-{_anchor(k)}"><span class="gloss-letter" style="--lc:{LESSON_COLOURS[n % 6]}">{k[0]}</span>'
+                        f'<dt>{k}</dt><dd>{v}</dd></div>' for n, (k, v) in enumerate(GLOSSARY))
+learn = f'''<div class="learn">
+<section class="learn-hero"><div class="learn-orbs" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+<div class="wrap"><div class="learn-kicker">Learn</div>
 <h1>Finance from first principles</h1>
-<p>A short course for readers who are new to finance: six lessons on how companies report, how markets value them, what banks, auditors and
-consultants do, and how money moves between countries. Each lesson uses figures from the research on this site. A glossary of
-{len(GLOSSARY)} terms follows.</p>
+<p>A short course for readers who are new to finance: how companies report, how markets value them, what banks, auditors and consultants do,
+and how money moves between countries. Every lesson uses real figures from the research on this site.</p>
+<div class="learn-chips"><span>{len(LESSONS)} lessons</span><span>{len(GLOSSARY)} terms</span><span>About 25 minutes</span><span>Examples from Kazakhstan and China</span></div>
 </div></section>
-<section class="block"><div class="wrap"><div class="learn-grid">
-<aside class="learn-aside"><div class="aside-box"><div class="aside-label">Course</div><ol class="learn-toc">{lesson_nav}
-<li><a href="#glossary"><span>A-Z</span>Glossary</a></li></ol></div></aside>
-<div class="learn-main prose">{lessons_html}
-<section class="lesson" id="glossary"><div class="lesson-num">Reference</div><h2>Glossary</h2><dl class="glossary">{glossary_html}</dl></section>
-<section class="lesson"><div class="lesson-num">Further reading</div><h2>References</h2><ol class="sources">{"".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in LEARN_REFS)}</ol></section>
-</div></div></div></section>'''
+<section class="learn-cards"><div class="wrap"><div class="lesson-cards">{lesson_cards}<a class="lesson-card gl" href="#glossary"><span class="lc-num">A-Z</span><span class="lc-title">Glossary</span></a></div></div></section>
+<section class="learn-body"><div class="wrap"><div class="learn-col">{lessons_html}
+<section class="lesson" id="glossary" style="--lc:#2f5bea"><div class="lesson-head"><span class="lesson-badge">A-Z</span><div><div class="lesson-num">Reference</div><h2>Glossary</h2></div></div>
+<dl class="gloss-grid">{glossary_html}</dl></section>
+<section class="lesson refs"><div class="lesson-num">Further reading</div><h2>References</h2><ol class="sources">{"".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in LEARN_REFS)}</ol></section>
+</div></div></section></div>'''
+
 page("learn.html", "Learn · Steppe & Silk Research", learn, "learn.html",
      "A short course and glossary on finance: company accounts, valuation, banks, audit, consulting and global finance.")
 
@@ -2337,7 +2589,7 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence. Photos inside the reports are from Wikimedia Commons and credited under each photo, with their licences. Research page photos, all via Wikimedia Commons and cropped: central Astana by Ken and Nyetta, licensed CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); Port of Aktau by Ashina, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), the cropped version shared under the same licence; Esentai Tower by Xcite, CC0.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence. Photos inside the reports, in the report sidebars and on the Learn page are from Wikimedia Commons and credited under each photo, with their licences. Research page photos, all via Wikimedia Commons and cropped: central Astana by Ken and Nyetta, licensed CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); Port of Aktau by Ashina, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), the cropped version shared under the same licence; Esentai Tower by Xcite, CC0.</p>
 <p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>
