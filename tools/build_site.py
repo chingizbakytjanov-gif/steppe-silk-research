@@ -1750,7 +1750,30 @@ page("index.html", "Steppe & Silk Research", home, "",
 # ---------- Research ----------
 
 counts = {t: sum(r["tag"] == t for r in REPORTS) for t in ("Companies", "Trade")}
-research = f'''<section class="page-head"><div class="wrap">
+# Photo above the list; it follows the filter (all, company notes, trade briefs). Credits on the photo and on Terms.
+RESEARCH_PHOTOS = [
+    ("all", "research-research", "Central Astana across the Esil River, with the Ak Orda presidential palace in the middle",
+     'Photo: central Astana across the Esil River. '
+     '<a href="https://commons.wikimedia.org/wiki/File:Central_Downtown_Astana_pamorama.jpg" rel="noopener">Ken and Nyetta</a>, '
+     '<a href="https://creativecommons.org/licenses/by/2.0/" rel="noopener">CC BY 2.0</a>, cropped'),
+    ("companies", "research-companies", "Esentai Tower and office buildings in Almaty at night",
+     'Photo: Esentai Tower, Almaty. '
+     '<a href="https://commons.wikimedia.org/wiki/File:Esentai_Tower_%D0%90%D0%B2%D0%B3%D1%83%D1%81%D1%82_2026.jpg" rel="noopener">Xcite</a>, '
+     '<a href="https://creativecommons.org/publicdomain/zero/1.0/" rel="noopener">CC0</a>, cropped'),
+    ("trade", "research-trade", "A port crane and a cargo ship flying Kazakhstan's flag at the Port of Aktau on the Caspian Sea",
+     'Photo: Port of Aktau, Caspian Sea. '
+     '<a href="https://commons.wikimedia.org/wiki/File:Port_Aktau.jpg" rel="noopener">Ashina</a>, '
+     '<a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener">CC BY-SA 3.0</a>, cropped'),
+]
+LAZY_HIDDEN = ' hidden loading="lazy"'  # the photo for another filter loads only when shown
+research_imgs = "".join(
+    f'<img class="hero-img" data-photo="{f}" src="assets/photos/{b}-2400.jpg" srcset="assets/photos/{b}-1200.jpg 1200w, assets/photos/{b}-2400.jpg 2400w" '
+    f'sizes="100vw" width="2400" height="720" alt="{escape(a)}"{"" if f == "all" else LAZY_HIDDEN}>' for f, b, a, _ in RESEARCH_PHOTOS)
+research_credits = "".join(f'<p class="hero-credit" data-photo="{f}"{"" if f == "all" else " hidden"}>{c}</p>' for f, _, _, c in RESEARCH_PHOTOS)
+research = f'''<section class="hero hero-research">
+{research_imgs}
+<div class="hero-shade"></div>
+<div class="wrap">
 <h1>Research</h1>
 <p><b>Company notes</b> look at how a company makes money, what has changed and what the market pays for it, based on its reports.
 <b>Trade briefs</b> look at what Kazakhstan and its neighbours sell and buy, based on official statistics.</p>
@@ -1759,7 +1782,9 @@ research = f'''<section class="page-head"><div class="wrap">
 <button data-f="companies">Company notes <span>{counts["Companies"]}</span></button>
 <button data-f="trade">Trade briefs <span>{counts["Trade"]}</span></button>
 </div>
-</div></section>
+</div>
+{research_credits}
+</section>
 <section class="block"><div class="wrap"><div class="rows" id="rows">{"".join(row(r) for r in REPORTS)}</div></div></section>'''
 page("research.html", "Research · Steppe & Silk Research", research, "research.html",
      "Company notes and trade briefs on Kazakhstan, Central Asia and China.")
@@ -1852,7 +1877,7 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence. Research page photos, all via Wikimedia Commons and cropped: central Astana by Ken and Nyetta, licensed CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); Port of Aktau by Ashina, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), the cropped version shared under the same licence; Esentai Tower by Xcite, CC0.</p>
 <p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>
