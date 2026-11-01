@@ -529,3 +529,15 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .ill .route-t { text-anchor: middle; font-size: 13px; font-weight: 600; fill: #0f9d76; }
 @media (prefers-reduced-motion: reduce) { .learn *, .learn *::before { animation: none !important; } .ill .dot { display: none; } .ill .trend { stroke-dashoffset: 0; } }
 @media (max-width: 900px) { .lesson-cards { grid-template-columns: repeat(2, 1fr); } .learn-hero h1 { font-size: 34px; } .gloss-grid { grid-template-columns: 1fr; } }
+
+/* Buttons: no outline-only ("ghost") buttons. The main action is solid blue, the rest are solid tint (2 Nov 2026) */
+.downloads a { background: var(--tint); color: var(--accent); border: 1px solid transparent; border-radius: 6px; padding: 9px 15px; }
+.downloads a span { color: var(--soft); }
+.downloads a:hover { background: #dde6fd; color: var(--accent); }
+.downloads a:hover span { color: var(--soft); }
+.downloads a:first-child { background: var(--accent); color: #fff; }
+.downloads a:first-child span { color: rgba(255,255,255,.85); }
+.downloads a:first-child:hover { background: #1f3fb0; color: #fff; }
+.downloads a:first-child:hover span { color: rgba(255,255,255,.85); }
+.row-actions a.btn { background: var(--accent); color: #fff; border-radius: 6px; padding: 7px 14px; text-decoration: none; }
+.row-actions a.btn:hover { background: #1f3fb0; color: #fff; }

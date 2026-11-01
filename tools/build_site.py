@@ -410,6 +410,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
     elif extra:
         sections += extra
     srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u, *_ in sources)
+    read_min = max(1, round(len(re.sub(r"<[^>]+>", " ", r["summary"] + sections).split()) / 220))   # reading speed ~220 words a minute
     cite = (f'{AUTHOR} (2026). <i>{r["title"]}</i>. Steppe &amp; Silk Research, {r["date_long"]}. '
             f'{SITE}/{r["url"]}')
     full = (f'<a href="{pre}{r["pdf"]}" download>Full report <span>PDF, {r["pages"]} pp.</span></a>' if r.get("pdf") else "")
@@ -425,7 +426,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
 <div class="label"><a href="{pre}research.html#{r["tag"].lower()}">{kind_label(r)}</a></div>
 <h1>{r["title"]}</h1>
 <p class="dek">{r["line"]}</p>
-<div class="byline">By <a href="{pre}about.html">{AUTHOR}</a> &middot; Published <time datetime="{r["iso"]}">{r["date_long"]}</time></div>
+<div class="byline">By <a href="{pre}about.html">{AUTHOR}</a> &middot; Published <time datetime="{r["iso"]}">{r["date_long"]}</time> &middot; {read_min} min read</div>
 {dl}
 </header>
 {kv}
@@ -2018,7 +2019,7 @@ home = f'''<section class="masthead hero">
 <h2><a href="{F["url"]}">{F["title"]}</a></h2>
 <p class="dek">{F["line"]}</p>
 <p>{F["summary"]}</p>
-<div class="row-actions"><a href="{F["url"]}">Read the {F["kind"].split()[-1].lower()}</a>{pdf_link(F)}<a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
+<div class="row-actions"><a class="btn" href="{F["url"]}">Read the {F["kind"].split()[-1].lower()}</a>{pdf_link(F)}<a class="pdf-link" href="{F["data"]}.xlsx" download>Data <span>XLSX</span></a></div>
 </div>
 <figure class="figure featured-chart"><div class="fig-title">{F["feat"][1]}</div>
 {F["feat"][2]}
