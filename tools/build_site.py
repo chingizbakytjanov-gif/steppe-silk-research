@@ -19,8 +19,8 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400'
          '&display=swap" rel="stylesheet">')
 
-INK, GREY, ACCENT, MUTED = "#14202e", "#bfc3c9", "#0b6e79", "#5f6873"
-CHART_HI = "#1f2d3d"  # charts: neutral grey bars, dark slate for the highlight and the second series
+INK, GREY, ACCENT, MUTED = "#13233d", "#c3d0f5", "#2a4fd6", "#5d6a82"
+CHART_HI = "#2a4fd6"  # charts: light blue bars, strong blue for the highlight and the second series (palette of 2 Nov 2026)
 CHART_FONT = "IBM Plex Sans,Arial"
 
 NAV = [("research.html", "Research"), ("news.html", "News"), ("learn.html", "Learn"), ("data.html", "Data"), ("about.html", "About"),
@@ -2631,7 +2631,7 @@ for name in ("style.css", "site.js"):
         write("assets/" + name, a.read())
 
 # 1200x630 cards; tools/render_og.js turns them into og/*.png
-OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#faf7f2;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
+OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#f7f9fd;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
           ".c{box-sizing:border-box;width:1200px;height:630px;padding:56px 64px;display:flex;flex-direction:column;border-top:14px solid " + CHART_HI + "}"
           ".top{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:20px;letter-spacing:1px;text-transform:uppercase}"
           ".top b{color:" + CHART_HI + ";font-weight:500}.mid{flex:1;display:flex;gap:48px;align-items:center}"
