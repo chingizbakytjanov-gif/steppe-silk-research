@@ -19,8 +19,8 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400'
          '&display=swap" rel="stylesheet">')
 
-INK, GREY, ACCENT, MUTED = "#13233d", "#c3d0f5", "#2a4fd6", "#5d6a82"
-CHART_HI = "#2a4fd6"  # charts: light blue bars, strong blue for the highlight and the second series (palette of 2 Nov 2026)
+INK, GREY, ACCENT, MUTED = "#13233d", "#bcc6d6", "#2b4c7e", "#5d6a82"
+CHART_HI = "#2b4c7e"  # charts: grey-blue bars, muted navy for the highlight and the second series (palette of 2 Nov 2026)
 CHART_FONT = "IBM Plex Sans,Arial"
 
 NAV = [("research.html", "Research"), ("news.html", "News"), ("learn.html", "Learn"), ("data.html", "Data"), ("about.html", "About"),
@@ -81,8 +81,10 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 </main>
 <footer class="site-footer"><div class="wrap">
 <div class="foot-main"><div class="foot-brand">Steppe &amp; Silk Research</div>
-<p>Reports on Kazakh companies and on Kazakhstan's trade with China. Not investment advice.</p></div>
-<div class="foot-links"><nav>{foot_nav}</nav><a href="mailto:{EMAIL}">{EMAIL}</a><span><a href="{pre}terms.html">Terms</a> &middot; <a href="{pre}privacy.html">Privacy</a> &middot; &copy; 2026 {AUTHOR}</span></div>
+<p>Independent research on Kazakh companies and on trade between Kazakhstan, its neighbours and China. Every figure is sourced, and the data can be downloaded. Not investment advice.</p></div>
+<div class="foot-col"><div class="foot-h">Sections</div><nav>{foot_nav}</nav></div>
+<div class="foot-col"><div class="foot-h">Research</div><a href="{pre}research.html#companies">Company notes</a><a href="{pre}research.html#trade">Trade briefs</a><a href="{pre}news.html">News briefs</a><a href="{pre}data.html">Datasets</a></div>
+<div class="foot-col"><div class="foot-h">Contact</div><a href="mailto:{EMAIL}">{EMAIL}</a><a href="{pre}terms.html">Terms of use</a><a href="{pre}privacy.html">Privacy</a><span>&copy; 2026 {AUTHOR}</span></div>
 </div></footer>
 </body>
 </html>
@@ -307,9 +309,12 @@ def row_mark(r, pre=""):
 
 
 def row(r, pre=""):
-    return f'''<div class="row" data-type="{r["tag"].lower()}">
+    sector = r.get("sector") or "Trade"
+    chips = [sector] + ([f'{r["n_src"]} sources', f'{r["read_min"]} min read'] if r.get("n_src") else [])
+    return f'''<div class="row" data-type="{r["tag"].lower()}" data-sector="{_anchor(sector)}">
 <div class="row-date">{row_mark(r, pre)}<time datetime="{r["iso"]}">{r["date"]}</time></div>
 <div class="row-main"><div class="label">{kind_label(r)}</div><h3><a class="row-link" href="{pre}{r["url"]}">{r["title"]}</a></h3><p>{r["line"]}</p>
+<div class="row-chips">{"".join(f'<span>{c}</span>' for c in chips)}</div>
 <div class="row-actions"><a href="{pre}{r["url"]}">Read</a>{pdf_link(r, pre)}<a class="pdf-link" href="{pre}{r["data"]}.xlsx" download>Data <span>XLSX</span></a></div></div>
 <div class="row-art"><div class="art-title">{r["art_title"]}</div>{r["art"]}</div></div>'''
 
@@ -388,7 +393,14 @@ def add_aside(body, r, pre, n_sources):
     """Sidebar on wide screens: a company card, illustrated facts, then (filled in after NEWS) news and related reports."""
     body = re.sub(r"<h2>(.*?)</h2>", lambda m: f'<h2 id="{_anchor(m.group(1))}">{m.group(1)}</h2>', body)
     facts = "".join(fact_card(c, pre) for c in FACT_CARDS.get(r["slug"], []))
-    aside = f'<aside class="report-aside">{company_card(r, pre)}{facts}<!--NEWS--><!--RELATED--></aside>'
+    period = re.search(r"(\d{4}(?:-\d{4})?)$", re.sub(r"<[^>]+>", "", r["title"]))
+    words = len(re.sub(r"<[^>]+>", " ", body[body.find('class="report-body"'):]).split())
+    snap = [("Type", r["kind"]), ("Sector", r.get("sector") or "Trade"), ("Period", period.group(1) if period else ""),
+            ("Sources", str(n_sources)), ("Figures and tables", str(body.count('class="fig-title"') + body.count('class="table-title"'))),
+            ("Data", "XLSX, CSV" + (", PDF" if r.get("pdf") else "")), ("Reading time", f"{r.get('read_min', max(1, round(words / 220)))} min")]
+    snapshot = ('<div class="aside-card snap"><div class="aside-label">About this report</div><dl>'
+                + "".join(f'<div><dt>{a}</dt><dd>{b}</dd></div>' for a, b in snap if b) + '</dl></div>')
+    aside = f'<aside class="report-aside">{company_card(r, pre)}{snapshot}{facts}<!--NEWS--><!--RELATED--></aside>'
     return body.replace("<!--ASIDE-->", aside)
 
 
@@ -411,6 +423,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
         sections += extra
     srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u, *_ in sources)
     read_min = max(1, round(len(re.sub(r"<[^>]+>", " ", r["summary"] + sections).split()) / 220))   # reading speed ~220 words a minute
+    r["n_src"], r["read_min"] = len(sources), read_min
     cite = (f'{AUTHOR} (2026). <i>{r["title"]}</i>. Steppe &amp; Silk Research, {r["date_long"]}. '
             f'{SITE}/{r["url"]}')
     full = (f'<a href="{pre}{r["pdf"]}" download>Full report <span>PDF, {r["pages"]} pp.</span></a>' if r.get("pdf") else "")
@@ -442,7 +455,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
 <div class="cite"><div class="label">How to cite</div><p>{cite}</p></div>
 <p class="corrections">Found an error? Email <a href="mailto:{EMAIL}">{EMAIL}</a>. Corrections are listed here with their date.</p>
 {"".join(f'<p class="corrections"><b>Correction, {d}:</b> {c}</p>' for d, c in r.get("corrections", []))}
-</div></div>
+</div><!--PREVNEXT--></div>
 <!--ASIDE-->
 </div>
 </div></article>'''
@@ -2060,6 +2073,7 @@ page("index.html", "Steppe & Silk Research", home, "",
 # ---------- Research ----------
 
 counts = {t: sum(r["tag"] == t for r in REPORTS) for t in ("Companies", "Trade")}
+sector_counts = [(s, sum((r.get("sector") or "Trade") == s for r in REPORTS)) for s in ("Banks & fintech", "Mining & energy", "Transport", "Manufacturing", "Trade")]
 # Photo above the list; it follows the filter (all, company notes, trade briefs). Credits on the photo and on Terms.
 RESEARCH_PHOTOS = [
     ("all", "research-research", "Central Astana across the Esil River, with the Ak Orda presidential palace in the middle",
@@ -2087,11 +2101,12 @@ research = f'''<section class="hero hero-research">
 <h1>Research</h1>
 <p><b>Company notes</b> look at how a company makes money, what has changed and what the market pays for it, based on its reports.
 <b>Trade briefs</b> look at what Kazakhstan and its neighbours sell and buy, based on official statistics.</p>
-<div class="filters">
+<div class="filters" data-g="type">
 <button class="on" data-f="all">All <span>{len(REPORTS)}</span></button>
 <button data-f="companies">Company notes <span>{counts["Companies"]}</span></button>
 <button data-f="trade">Trade briefs <span>{counts["Trade"]}</span></button>
 </div>
+<div class="filters sectors" data-g="sector"><button class="on" data-f="all">All sectors</button>{"".join(f'<button data-f="{_anchor(s)}">{s} <span>{n}</span></button>' for s, n in sector_counts)}</div>
 </div>
 {research_credits}
 </section>
@@ -2267,7 +2282,14 @@ for _r in REPORTS:  # finish each report's sidebar: related news, then related r
     _f = os.path.join(OUT, _r["url"])
     with open(_f) as _h:
         _html = _h.read()
-    write(_r["url"], _html.replace("<!--NEWS-->", _nbox).replace("<!--RELATED-->", _rbox))
+    _i = REPORTS.index(_r)
+    _pn = ""
+    for _lab, _x in (("Previous report", REPORTS[_i + 1] if _i + 1 < len(REPORTS) else None), ("Next report", REPORTS[_i - 1] if _i > 0 else None)):
+        if _x:
+            _pn += (f'<a class="pn-card{" next" if _lab.startswith("Next") else ""}" href="../{_x["url"]}"><img src="../assets/photos/{ARTICLE_PHOTOS[_x["slug"]][0]}-800.jpg" alt="" loading="lazy">'
+                    f'<span class="pn-lab">{_lab}</span><span class="pn-title">{_x["title"]}</span><span class="pn-kind">{kind_label(_x)}</span></a>')
+    _pn = f'<nav class="prevnext" aria-label="More reports">{_pn}</nav>'
+    write(_r["url"], _html.replace("<!--NEWS-->", _nbox).replace("<!--RELATED-->", _rbox).replace("<!--PREVNEXT-->", _pn))
 
 
 # ---------- Learn ----------
@@ -2401,7 +2423,7 @@ LEARN_REFS = [
 # Learn, version 2: its own palette (blue, green, violet), animated diagrams that play when they scroll into view,
 # photos and a question at the end of each lesson. The lesson texts are in LESSONS above.
 
-LESSON_COLOURS = ["#2f5bea", "#0b7a5c", "#6a4be8", "#0a6f8a", "#4b56d2", "#0c7a52"]   # all pass 4.5:1 with white text
+LESSON_COLOURS = ["#2b4c7e", "#2f6650", "#6d4a73", "#3f6a8a", "#44507f", "#3a6b45"]   # all pass 4.5:1 with white text
 
 
 def ill_money_flow():
@@ -2544,7 +2566,7 @@ and how money moves between countries. Every lesson uses real figures from the r
 </div></section>
 <section class="learn-cards"><div class="wrap"><div class="lesson-cards">{lesson_cards}<a class="lesson-card gl" href="#glossary"><span class="lc-num">A-Z</span><span class="lc-title">Glossary</span></a></div></div></section>
 <section class="learn-body"><div class="wrap"><div class="learn-col">{lessons_html}
-<section class="lesson" id="glossary" style="--lc:#2f5bea"><div class="lesson-head"><span class="lesson-badge">A-Z</span><div><div class="lesson-num">Reference</div><h2>Glossary</h2></div></div>
+<section class="lesson" id="glossary" style="--lc:#2b4c7e"><div class="lesson-head"><span class="lesson-badge">A-Z</span><div><div class="lesson-num">Reference</div><h2>Glossary</h2></div></div>
 <dl class="gloss-grid">{glossary_html}</dl></section>
 <section class="lesson refs"><div class="lesson-num">Further reading</div><h2>References</h2><ol class="sources">{"".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in LEARN_REFS)}</ol></section>
 </div></div></section></div>'''
@@ -2632,7 +2654,7 @@ for name in ("style.css", "site.js"):
         write("assets/" + name, a.read())
 
 # 1200x630 cards; tools/render_og.js turns them into og/*.png
-OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#f7f9fd;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
+OG_CSS = (f"body{{margin:0;width:1200px;height:630px;background:#f8f9fb;font-family:'IBM Plex Sans',Arial;color:{INK};}}"
           ".c{box-sizing:border-box;width:1200px;height:630px;padding:56px 64px;display:flex;flex-direction:column;border-top:14px solid " + CHART_HI + "}"
           ".top{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:20px;letter-spacing:1px;text-transform:uppercase}"
           ".top b{color:" + CHART_HI + ";font-weight:500}.mid{flex:1;display:flex;gap:48px;align-items:center}"
