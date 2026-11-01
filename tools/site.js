@@ -13,20 +13,33 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
+  var state = { type: 'all', sector: 'all' };
   var buttons = document.querySelectorAll('.filters button');
   buttons.forEach(function (b) {
     b.addEventListener('click', function () {
-      var f = b.getAttribute('data-f');
-      buttons.forEach(function (x) { x.classList.toggle('on', x === b); });
+      var g = b.parentNode.getAttribute('data-g') || 'type', f = b.getAttribute('data-f');
+      state[g] = f;
+      b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
       document.querySelectorAll('#rows .row').forEach(function (r) {
-        r.hidden = !(f === 'all' || r.getAttribute('data-type') === f);
+        r.hidden = !((state.type === 'all' || r.getAttribute('data-type') === state.type) &&
+                     (state.sector === 'all' || r.getAttribute('data-sector') === state.sector));
       });
-      document.querySelectorAll('[data-photo]').forEach(function (el) {
+      if (g === 'type') document.querySelectorAll('[data-photo]').forEach(function (el) {
         el.hidden = el.getAttribute('data-photo') !== f;
       });
     });
   });
   // research.html#trade and #companies (the labels on each report) open with that filter on
-  var start = document.querySelector('.filters button[data-f="' + location.hash.slice(1) + '"]');
+  var start = document.querySelector('.filters[data-g="type"] button[data-f="' + location.hash.slice(1) + '"]');
   if (start) start.click();
+})();
+// Learn: diagrams start their animation when they scroll into view
+(function () {
+  var els = document.querySelectorAll('.learn-anim');
+  if (!els.length) return;
+  if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('play'); }); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('play'); io.unobserve(en.target); } });
+  }, { threshold: 0.35 });
+  els.forEach(function (e) { io.observe(e); });
 })();
