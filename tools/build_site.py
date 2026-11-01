@@ -2400,7 +2400,7 @@ LEARN_REFS = [
 # Learn, version 2: its own palette (blue, green, violet), animated diagrams that play when they scroll into view,
 # photos and a question at the end of each lesson. The lesson texts are in LESSONS above.
 
-LESSON_COLOURS = ["#2f5bea", "#0f9d76", "#7457f5", "#0e8fb0", "#4b56d2", "#13a06b"]
+LESSON_COLOURS = ["#2f5bea", "#0b7a5c", "#6a4be8", "#0a6f8a", "#4b56d2", "#0c7a52"]   # all pass 4.5:1 with white text
 
 
 def ill_money_flow():
