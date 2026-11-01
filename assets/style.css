@@ -266,3 +266,24 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
   .number { border-right: 0; margin-right: 0; }
   .number b { font-size: 22px; }
 }
+
+/* Country flags: trade briefs in lists, report headers and country cards. Fixed height, natural width, never cropped. */
+.flag { display: block; height: 20px; width: auto; border: 1px solid var(--line); }
+.row-flags { display: flex; flex-wrap: wrap; gap: 4px; max-width: 132px; margin-bottom: 10px; }
+.report-flags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.report-flags .flag { height: 34px; }
+.card-band .card-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.card-band .card-flags img { height: 34px; width: auto; max-height: none; max-width: none; }
+.card-band .card-flags.many img { height: 18px; }
+@media (max-width: 760px) { .row-flags { margin-bottom: 6px; } .row-flags .flag { height: 16px; } .report-flags .flag { height: 28px; } }
+
+/* Research: photo masthead that follows the filter */
+.hero-research { min-height: 400px; }
+.hero-research .wrap { padding-bottom: 120px; }
+.hero-research .hero-img { object-position: center 60%; }
+.hero-research p b { color: #fff; }
+.hero-research .filters button { background: rgba(255,255,255,.92); border-color: transparent; }
+.hero-research .filters button.on { background: var(--ink); color: #fff; border-color: rgba(255,255,255,.6); }
+.hero + .block { padding-top: 0; }
+.hero + .block .rows { border-top: 1px solid var(--ink); }
+@media (max-width: 760px) { .hero-research { min-height: 380px; } .hero-research .wrap { padding-bottom: 90px; } .hero-research .hero-img { object-position: center 60%; } }

@@ -21,6 +21,12 @@
       document.querySelectorAll('#rows .row').forEach(function (r) {
         r.hidden = !(f === 'all' || r.getAttribute('data-type') === f);
       });
+      document.querySelectorAll('[data-photo]').forEach(function (el) {
+        el.hidden = el.getAttribute('data-photo') !== f;
+      });
     });
   });
+  // research.html#trade and #companies (the labels on each report) open with that filter on
+  var start = document.querySelector('.filters button[data-f="' + location.hash.slice(1) + '"]');
+  if (start) start.click();
 })();

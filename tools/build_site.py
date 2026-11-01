@@ -243,6 +243,7 @@ KASPI = dict(
 TRADE = dict(
     slug="kazakhstan-china-trade",
     mark="KZ &middot; CN",
+    flags=["kz", "cn"],
     url="research/kazakhstan-china-trade.html",
     tag="Trade",
     kind="Trade brief",
@@ -279,11 +280,21 @@ def logo_src(l):
     return l if "." in l else l + ".svg"
 
 
+FLAG_NAMES = dict(kz="Kazakhstan", cn="China", ru="Russia", kg="Kyrgyzstan", uz="Uzbekistan", tj="Tajikistan", tm="Turkmenistan")
+
+
+def flag_imgs(codes, pre=""):
+    """Country flags from assets/flags (Wikimedia Commons, public domain)."""
+    return "".join(f'<img class="flag" src="{pre}assets/flags/{c}.svg" alt="Flag of {FLAG_NAMES[c]}">' for c in codes)
+
+
 def row_mark(r, pre=""):
     """Left of each article in a list: the company's logo, or the countries a trade brief covers."""
     if r.get("logos"):
         l, n = r["logos"][0]
         return f'<img class="row-logo" src="{pre}assets/logos/{logo_src(l)}" alt="{escape(n)} logo">'
+    if r.get("flags"):
+        return f'<span class="row-flags">{flag_imgs(r["flags"], pre)}</span>'
     return f'<span class="row-mark">{r["mark"]}</span>' if r.get("mark") else ""
 
 
@@ -384,6 +395,7 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
     body = f'''<article class="report"><div class="wrap">
 <header class="report-head">
 {"".join(f'<img class="report-logo" src="{pre}assets/logos/{logo_src(l)}" alt="{escape(n)} logo">' for l, n in r.get("logos", []))}
+{f'<div class="report-flags">{flag_imgs(r["flags"], pre)}</div>' if r.get("flags") else ""}
 <div class="label"><a href="{pre}research.html#{r["tag"].lower()}">{kind_label(r)}</a></div>
 <h1>{r["title"]}</h1>
 <p class="dek">{r["line"]}</p>
@@ -722,6 +734,7 @@ SRC_CA = [
 CA = dict(
     slug="china-central-asia-2025",
     mark="CN &middot; CA",
+    flags=["cn", "kz", "kg", "uz", "tj", "tm"],
     url="research/china-central-asia-2025.html",
     tag="Trade",
     kind="Trade brief",
@@ -983,6 +996,7 @@ SRC_RU = [
 RU = dict(
     slug="china-russia-trade-2025",
     mark="CN &middot; RU",
+    flags=["cn", "ru"],
     url="research/china-russia-trade-2025.html",
     tag="Trade",
     kind="Trade brief",
@@ -1636,24 +1650,29 @@ COVERAGE = [  # companies first, then countries; logo files are in assets/logos 
     dict(code="1055", logo="china-southern", tag="Company · China", name="China Southern", band="#1c6fb5",
          what="China's largest airline by fleet, Air Astana's partner", r=CS,
          stats=[("Revenue, 2025", "RMB182 bn"), ("International revenue, 2023-25", "+64%"), ("Result, 1H 2026", "−RMB3.7 bn")]),
-    dict(code="KZ", tag="Country", name="Kazakhstan", band="#0a7f99",
+    dict(code="KZ", flags=["kz"], tag="Country", name="Kazakhstan", band="#0a7f99",
          what="Sells raw materials to China, buys machinery", r=TRADE,
          stats=[("Trade with China, 2025", "$34.1 bn"), ("China's share of trade", "23.7%"), ("Balance with China", "−$3.7 bn")]),
-    dict(code="CA", tag="Region", name="Central Asia", band="#8a5a2b",
+    dict(code="CA", flags=["kz", "kg", "uz", "tj", "tm"], tag="Region", name="Central Asia", band="#8a5a2b",
          what="Five states whose trade with China passed $100 billion in 2025", r=CA,
          stats=[("Trade with China, 2025", "$106.3 bn"), ("China's surplus", "$36.1 bn"), ("Kyrgyzstan, own data", "$4.97 bn")]),
-    dict(code="RU", tag="Country", name="Russia", band="#4a5562",
+    dict(code="RU", flags=["ru"], tag="Country", name="Russia", band="#4a5562",
          what="China's largest neighbour by trade, where cars fell sharply in 2025", r=RU,
          stats=[("Trade with China, 2025", "$228.1 bn"), ("Change, 2025", "−6.9%"), ("Chinese cars bought", "−49%")]),
-    dict(code="CN", tag="Country", name="China", band="#b8261c",
+    dict(code="CN", flags=["cn"], tag="Country", name="China", band="#b8261c",
          what="Kazakhstan's main trading partner in these reports", r=TRADE,
          stats=[("Goods to Kazakhstan, 2025", "$18.9 bn"), ("Same flow, Chinese data", "$29.7 bn"), ("Top buy from Kazakhstan", "Ores")]),
 ]
 
 
 def card(c):
-    mark = (f'<img src="assets/logos/{logo_src(c["logo"])}" alt="{escape(c["name"])} logo">' if c.get("logo")
-            else f'<b style="color:{c["band"]}">{c["code"]}</b>')
+    if c.get("logo"):
+        mark = f'<img src="assets/logos/{logo_src(c["logo"])}" alt="{escape(c["name"])} logo">'
+    elif c.get("flags"):
+        mark = f'<span class="card-flags{" many" if len(c["flags"]) > 2 else ""}">{flag_imgs(c["flags"])}</span>'
+    else:
+        mark = f'<b style="color:{c["band"]}">{c["code"]}</b>'
+
     return (f'<a class="card" href="{c["r"]["url"]}"><div class="card-band" style="border-top-color:{c["band"]}">{mark}<span>{c["tag"]}</span></div>'
             f'<div class="card-body"><h3>{c["name"]}</h3><p class="muted">{c["what"]}</p>'
             '<ul class="card-stats">' + "".join(f'<li><span>{k}</span><b>{v}</b></li>' for k, v in c["stats"]) + '</ul>'
@@ -1731,7 +1750,30 @@ page("index.html", "Steppe & Silk Research", home, "",
 # ---------- Research ----------
 
 counts = {t: sum(r["tag"] == t for r in REPORTS) for t in ("Companies", "Trade")}
-research = f'''<section class="page-head"><div class="wrap">
+# Photo above the list; it follows the filter (all, company notes, trade briefs). Credits on the photo and on Terms.
+RESEARCH_PHOTOS = [
+    ("all", "research-research", "Central Astana across the Esil River, with the Ak Orda presidential palace in the middle",
+     'Photo: central Astana across the Esil River. '
+     '<a href="https://commons.wikimedia.org/wiki/File:Central_Downtown_Astana_pamorama.jpg" rel="noopener">Ken and Nyetta</a>, '
+     '<a href="https://creativecommons.org/licenses/by/2.0/" rel="noopener">CC BY 2.0</a>, cropped'),
+    ("companies", "research-companies", "Esentai Tower and office buildings in Almaty at night",
+     'Photo: Esentai Tower, Almaty. '
+     '<a href="https://commons.wikimedia.org/wiki/File:Esentai_Tower_%D0%90%D0%B2%D0%B3%D1%83%D1%81%D1%82_2026.jpg" rel="noopener">Xcite</a>, '
+     '<a href="https://creativecommons.org/publicdomain/zero/1.0/" rel="noopener">CC0</a>, cropped'),
+    ("trade", "research-trade", "A port crane and a cargo ship flying Kazakhstan's flag at the Port of Aktau on the Caspian Sea",
+     'Photo: Port of Aktau, Caspian Sea. '
+     '<a href="https://commons.wikimedia.org/wiki/File:Port_Aktau.jpg" rel="noopener">Ashina</a>, '
+     '<a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener">CC BY-SA 3.0</a>, cropped'),
+]
+LAZY_HIDDEN = ' hidden loading="lazy"'  # the photo for another filter loads only when shown
+research_imgs = "".join(
+    f'<img class="hero-img" data-photo="{f}" src="assets/photos/{b}-2400.jpg" srcset="assets/photos/{b}-1200.jpg 1200w, assets/photos/{b}-2400.jpg 2400w" '
+    f'sizes="100vw" width="2400" height="720" alt="{escape(a)}"{"" if f == "all" else LAZY_HIDDEN}>' for f, b, a, _ in RESEARCH_PHOTOS)
+research_credits = "".join(f'<p class="hero-credit" data-photo="{f}"{"" if f == "all" else " hidden"}>{c}</p>' for f, _, _, c in RESEARCH_PHOTOS)
+research = f'''<section class="hero hero-research">
+{research_imgs}
+<div class="hero-shade"></div>
+<div class="wrap">
 <h1>Research</h1>
 <p><b>Company notes</b> look at how a company makes money, what has changed and what the market pays for it, based on its reports.
 <b>Trade briefs</b> look at what Kazakhstan and its neighbours sell and buy, based on official statistics.</p>
@@ -1740,7 +1782,9 @@ research = f'''<section class="page-head"><div class="wrap">
 <button data-f="companies">Company notes <span>{counts["Companies"]}</span></button>
 <button data-f="trade">Trade briefs <span>{counts["Trade"]}</span></button>
 </div>
-</div></section>
+</div>
+{research_credits}
+</section>
 <section class="block"><div class="wrap"><div class="rows" id="rows">{"".join(row(r) for r in REPORTS)}</div></div></section>'''
 page("research.html", "Research · Steppe & Silk Research", research, "research.html",
      "Company notes and trade briefs on Kazakhstan, Central Asia and China.")
@@ -1833,7 +1877,7 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 <h2>Using the content</h2>
 <p>You may quote the reports and reuse the downloadable data, including for commercial purposes, as long as you name Steppe &amp; Silk Research and link to the page you used. The reports themselves (text, charts and PDFs) may not be republished in full without permission.</p>
 <h2>Third-party sources and links</h2>
-<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence.</p>
+<p>Company names, logos and trademarks belong to their owners and are shown only to identify the companies discussed. Logo files: Kaspi.kz logo from Wikimedia Commons (CC BY-SA 4.0); Kazatomprom, KazMunayGas, Air Astana, Geely Automobile Holdings, Zeekr, China Southern Airlines and Hepsiburada logos from Wikimedia Commons (public domain); Halyk Bank logo from halykbank.kz. Country flags from Wikimedia Commons (public domain). Home page photo: David Gubler, via Wikimedia Commons, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), cropped; the cropped version is shared under the same licence. Research page photos, all via Wikimedia Commons and cropped: central Astana by Ken and Nyetta, licensed CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/); Port of Aktau by Ashina, licensed CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/), the cropped version shared under the same licence; Esentai Tower by Xcite, CC0.</p>
 <p> Links to other websites are given as sources; Steppe &amp; Silk Research is not responsible for their content.</p>
 <h2>Changes</h2>
 <p>These terms may be updated. The date at the top shows the latest version.</p>
