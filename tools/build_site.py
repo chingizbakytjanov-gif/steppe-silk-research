@@ -2015,11 +2015,21 @@ home = f'''<section class="masthead hero">
  sizes="100vw" width="2400" height="767" alt="A long freight train of Kazakhstan Temir Zholy crossing the steppe, with hills behind">
 <div class="hero-shade"></div>
 <div class="wrap">
-<h1>Research on Kazakhstan's companies and its trade with China</h1>
-<p>Company notes and trade briefs based on company filings and official statistics. Current reports cover Kaspi.kz, Halyk Bank, Kazatomprom, KazMunayGas, Air Astana, Geely and China Southern Airlines, Kazakhstan's trade with China, and China's trade with Central Asia and Russia. Every source is cited, and the underlying data is available to download.</p>
+<div class="hero-kicker">Independent student research · Astana, Kazakhstan</div>
+<h1>Finance, explained through Kazakhstan and China</h1>
+<p>A research site for anyone curious about finance, from first-time readers to students and professionals. It follows Kazakhstan's companies
+and the economic ties between Kazakhstan, Central Asia and China, using company reports and official statistics. Every figure has a source,
+and the data can be downloaded.</p>
+<div class="hero-ctas"><a class="btn" href="research.html">Read the research</a><a class="btn btn-light" href="learn.html">New to finance? Start here</a></div>
 </div>
 <p class="hero-credit">{HERO_CREDIT}</p>
 </section>
+<section class="pillars"><div class="wrap"><div class="block-head"><h2>What you will find here</h2></div><div class="pillar-grid">
+<a class="pillar" href="research.html"><img src="assets/photos/research-research-1200.jpg" alt="" loading="lazy"><span class="pillar-n">{len(REPORTS)} reports</span><b>Research</b><span>Company notes on Kaspi, Halyk, Kazatomprom, KazMunayGas, Air Astana, Geely and China Southern, and trade briefs on Kazakhstan, Central Asia, China and Russia.</span></a>
+<a class="pillar" href="news.html"><img src="assets/photos/news-apple-800.jpg" alt="" loading="lazy"><span class="pillar-n">News briefs</span><b>News</b><span>Deals, sharp share moves, company rankings and central bank decisions, each with a chart and a plain-language summary.</span></a>
+<a class="pillar" href="learn.html"><img src="assets/photos/learn-fse.jpg" alt="" loading="lazy"><span class="pillar-n">6 lessons · glossary</span><b>Learn</b><span>A short course for beginners: accounts, valuation, banks, audit and consulting, and how money moves between countries.</span></a>
+<a class="pillar" href="data.html"><img src="assets/photos/research-trade-1200.jpg" alt="" loading="lazy"><span class="pillar-n">XLSX and CSV</span><b>Data</b><span>The spreadsheets behind every chart, free to download and reuse with a citation.</span></a>
+</div></div></section>
 <section class="numbers"><div class="wrap"><div class="numbers-head">By the numbers</div><div class="numbers-row">
 {"".join(f'<a class="number" href="{r["url"]}"><b>{v}</b><span>{k}</span></a>' for v, k, r in NUMBERS)}
 </div></div></section>
@@ -2662,13 +2672,17 @@ lessons_html = "".join(lesson_block(i, a, t, body) for i, (a, t, body) in enumer
 glossary_html = "".join(f'<div class="gloss-card" id="term-{_anchor(k)}"><span class="gloss-letter" style="--lc:{LESSON_COLOURS[n % 6]}">{k[0]}</span>'
                         f'<dt>{k}</dt><dd>{v}</dd></div>' for n, (k, v) in enumerate(GLOSSARY))
 learn = f'''<div class="learn">
-<section class="learn-hero"><div class="learn-orbs" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-<div class="wrap"><div class="learn-kicker">Learn</div>
+<section class="hero hero-research hero-learn">
+<img class="hero-img" src="assets/photos/learn-fse.jpg" width="1400" height="700" alt="The trading floor of the Frankfurt Stock Exchange">
+<div class="hero-shade"></div>
+<div class="wrap"><div class="hero-kicker">Learn</div>
 <h1>Finance from first principles</h1>
 <p>A short course for readers who are new to finance: how companies report, how markets value them, what banks, auditors and consultants do,
 and how money moves between countries. Every lesson uses real figures from the research on this site.</p>
 <div class="learn-chips"><span>{len(LESSONS)} lessons</span><span>{len(GLOSSARY)} terms</span><span>About 25 minutes</span><span>Examples from Kazakhstan and China</span></div>
-</div></section>
+</div>
+<p class="hero-credit">Photo: Frankfurt Stock Exchange. {credit("Ank Kumar", C + "Frankfurt_Stock_Exchange_(Ank_Kumar)_02.jpg", *BYSA4)}</p>
+</section>
 <section class="learn-cards"><div class="wrap"><div class="lesson-cards">{lesson_cards}<a class="lesson-card gl" href="#glossary"><span class="lc-num">A-Z</span><span class="lc-title">Glossary</span></a></div></div></section>
 <section class="learn-body"><div class="wrap"><div class="learn-col">{lessons_html}
 <section class="lesson" id="glossary" style="--lc:#2b4c7e"><div class="lesson-head"><span class="lesson-badge">A-Z</span><div><div class="lesson-num">Reference</div><h2>Glossary</h2></div></div>
@@ -2682,28 +2696,57 @@ page("learn.html", "Learn · Steppe & Silk Research", learn, "learn.html",
 
 # ---------- About ----------
 
-about = f'''<section class="page-head"><div class="wrap"><h1>About</h1></div></section>
-<section class="block"><div class="wrap"><div class="prose">
-<p class="lead">Steppe &amp; Silk Research is an independent research publication covering companies in Kazakhstan and the country's trade with China. It was founded in 2026 by Chingiz Bakytzhanov.</p>
-<p>The publication produces two formats. <b>Company notes</b> examine how a company earns its money and what has changed in its results, based on its annual report. <b>Trade briefs</b> analyse trade between Kazakhstan, its neighbours and China, based on official statistics. Company notes also compare the share price with the company's profit, book value and dividends.</p>
-<h2>Editorial standards</h2>
+ABOUT_METHOD = [
+    "Each report starts from a primary source: an annual report, a results release, a stock exchange filing or a customs table.",
+    "Figures are taken from that source and checked against a second source where one exists.",
+    "Where national statistics disagree, as Kazakh and Chinese trade data often do, both series are shown and the choice is explained.",
+    "Every chart is built from a spreadsheet that is published with the report.",
+    "Opinion is kept to a separate, labelled section at the end of a report.",
+]
+_details = [
+    ("Publication", "Steppe &amp; Silk Research, an independent online research publication"),
+    ("Subject", "Finance: companies in Kazakhstan and economic ties between Kazakhstan, Central Asia and China"),
+    ("Audience", "General readers, students and finance professionals"),
+    ("Formats", f"Company notes, trade briefs, news briefs, a beginners' course (Learn) and open datasets"),
+    ("Coverage", f"{len(REPORTS)} reports, {len(NEWS)} news briefs, {len(LESSONS)} lessons"),
+    ("Sources", "Company filings, stock exchange disclosures (KASE, AIX, HKEX), customs and national statistics"),
+    ("Languages of sources", "English, Russian, Kazakh"),
+    ("First published", "8 October 2026"),
+    ("Based in", "Astana, Kazakhstan"),
+    ("Editor", "Chingiz Bakytzhanov"),
+    ("Status", "Not investment advice; no advertising, cookies or analytics"),
+]
+_log = sorted([(r["iso"], r["date"], r["kind"], r["title"], r["url"]) for r in REPORTS], reverse=True)
+about = f'''<section class="page-head"><div class="wrap">
+<h1>About</h1>
+<p>Steppe &amp; Silk Research explains finance through companies in Kazakhstan and the country's economic ties with Central Asia and China.
+It is written for anyone with an interest in the subject, from first-time readers to professionals.</p>
+</div></section>
+<section class="block"><div class="wrap"><div class="prose about-strict">
+<h2>Site details</h2>
+{table(["", ""], [[k, v] for k, v in _details], num_from=9, cls="details")}
+<h2>Purpose</h2>
+<p>China is the largest trading partner of each Central Asian country, and Kazakh companies sell uranium, oil and metals to Chinese buyers.
+Much of the information about these links is published in Russian, Kazakh or Chinese, or spread across filings that few readers open.
+The publication brings it together in English, with the figures checked and the sources linked.</p>
+<h2>Editor</h2>
+<p>The publication is edited and written by Chingiz Bakytzhanov, a first-year university student in Astana. It is an independent student
+project and is not affiliated with any company, university or government body.</p>
+<h2>Method</h2>
+<ol>{"".join(f"<li>{m}</li>" for m in ABOUT_METHOD)}</ol>
+<h2>Standards</h2>
 <ul>
-<li>Figures are taken from company filings and official statistics, and every source is cited with a link.</li>
-<li>The data behind each chart is published and can be <a href="data.html">downloaded</a>.</li>
-<li>Where sources disagree, as Kazakh and Chinese trade statistics often do, each report states which figures it uses and why.</li>
-<li>Analysis and opinion are kept separate. The author's own assessment appears only in the "My view" section of company notes and the "Author's comment" section of trade briefs.</li>
+<li>Every figure links to its source.</li>
+<li>The data behind each chart can be <a href="data.html">downloaded</a>.</li>
 <li>Nothing published here is investment advice.</li>
 </ul>
-<h2>Corrections</h2>
-<p>Errors are corrected openly. Each correction is noted at the end of the report with its date. Readers who spot a mistake can contact the editor at <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
-<h2>Founder and editor</h2>
-<p>Chingiz Bakytzhanov is the founder and editor of Steppe &amp; Silk Research and the author of its reports. He is a student from Kazakhstan with a focus on finance, and he works in Kazakh, Russian and English. Before founding the publication he served as Director of Business and Finance at Earth Ambassadors, a youth organisation.</p>
+<h2>Publication record</h2>
+{table(["Date", "Type", "Title"], [[d, k, f'<a href="{u}">{ti}</a>'] for _, d, k, ti, u in _log], num_from=9, cls="log")}
 <h2 id="contact">Contact</h2>
-<p>For questions about the research, data requests, corrections or collaboration, contact the editor.</p>
-<ul class="contact-list"><li><span>Email</span><a href="mailto:{EMAIL}">{EMAIL}</a></li></ul>
+<p>Questions about a report, data requests, errors and proposals for collaboration: <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
 </div></div></section>'''
 page("about.html", "About · Steppe & Silk Research", about, "about.html",
-     "About Steppe & Silk Research, how its research is made, and its author.")
+     "About Steppe & Silk Research: purpose, editor, method, standards and publication record.")
 
 
 # ---------- Terms and Privacy ----------
