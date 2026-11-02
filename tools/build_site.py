@@ -2244,30 +2244,135 @@ NEWS = [
 ]
 
 
+# News, version 2: every brief is presented, not just written. A ticker of key numbers, a lead story, a card grid, and
+# full briefs with photos, a chart as evidence, a plain-language line and "why it matters". Figures come from each brief's sources.
+
+def diverge_bars(rows, unit="%"):
+    """Bars either side of zero, for moves that can be up or down."""
+    top = max(abs(v) for _, v, _ in rows)
+    out = []
+    for lab, v, txt in rows:
+        w = abs(v) / top * 50
+        side = f'left:50%;width:{w:.1f}%' if v >= 0 else f'left:{50 - w:.1f}%;width:{w:.1f}%'
+        out.append(f'<div class="dv"><div class="dv-l">{lab}</div><div class="dv-track"><span class="dv-zero"></span>'
+                   f'<span class="dv-bar{" neg" if v < 0 else ""}" style="{side}"></span></div><div class="dv-v">{txt}</div></div>')
+    return f'<div class="diverge">{"".join(out)}</div>'
+
+
+def stack_bar(parts):
+    segs = "".join(f'<span style="width:{p}%;background:{c}"><b>{p:.0f}%</b></span>' for _, p, c in parts)
+    keys = "".join(f'<li><i style="background:{c}"></i>{lab}</li>' for lab, p, c in parts)
+    return f'<div class="stackbar">{segs}</div><ul class="stack-keys">{keys}</ul>'
+
+
+def _cr(key):
+    """Credit for a news photo: (author, Commons page, licence, licence URL)."""
+    return NEWS_CREDITS[key]
+
+
+NEWS_CREDITS = {
+    "news-apple": ("Daniel L. Lu", C + "Aerial_view_of_Apple_Park.jpg") + BYSA4,
+    "news-nvidia": ("Coolcaesar", C + "NVIDIA_Headquarters.jpg") + BYSA4,
+    "news-accenture": ("Roberto Fiadone", C + "Accenture_Argentina.jpg") + BYSA4,
+    "learn-tenge2000": ("National Bank of Kazakhstan", C + "KZ2000KZT2012averse.jpg", "Public domain", "https://commons.wikimedia.org/wiki/Commons:Licensing"),
+    "news-mgm": ("Tuxyso", C + "Las_Vegas_MGM_Grand_at_day_2013.jpg") + BYSA3,
+    "article-aa": ARTICLE_PHOTOS["air-astana-2026"][5:7] + ARTICLE_PHOTOS["air-astana-2026"][7],
+    "article-cs": ARTICLE_PHOTOS["china-southern-2026"][5:7] + ARTICLE_PHOTOS["china-southern-2026"][7],
+    "learn-nbk": ("МаратД", C + "The_building_of_the_National_Bank_of_the_Republic_of_Kazakhstan_in_Almaty.jpg") + BYSA4,
+}
+NEWS_VISUALS = {
+    "apple-nvidia-oct-2026": dict(
+        photos=[("news-apple", "Apple Park, Apple's headquarters in Cupertino"), ("news-nvidia", "Nvidia's headquarters in Santa Clara")],
+        stat=("$5.03 tn", "Apple's market value at the close on 30 October"),
+        plain="The stock market now values Apple slightly above Nvidia, so Apple is again the most valuable company listed on any exchange.",
+        chart=lambda: hbars([("Apple", 5.03), ("Nvidia", 4.93), ("Microsoft", 3.88), ("Alphabet", 3.44), ("Amazon", 2.60)], unit=" tn",
+                            colour=CHART_HI, fmt="${:.2f}"),
+        chart_title="Market value at the close on 30 October 2026, $ trillion"),
+    "air-astana-china-southern-jv": dict(
+        photos=[("article-aa", "An Air Astana Airbus A321LR"), ("article-cs", "A China Southern Boeing 787-9")],
+        stat=("117", "scheduled flights a week between Kazakhstan and China, all airlines"),
+        plain="Two airlines agreed to plan their flights between Kazakhstan and China together instead of competing for the same passengers.",
+        chart=lambda: columns([("Weekly flights", GREY, [v for _, v in A_CHINA])], [l for l, _ in A_CHINA], w=480, h=200, hi=2, top=60, fmt="{:.0f}"),
+        chart_title="Air Astana's weekly flights to China"),
+    "nbk-rate-cut-oct-2026": dict(
+        photos=[("learn-tenge2000", "A 2,000-tenge banknote"), ("learn-nbk", "The National Bank of Kazakhstan building in Almaty")],
+        stat=("15.75%", "new base rate, from 16.25%"),
+        plain="Kazakhstan's central bank made borrowing slightly cheaper, because prices are now rising more slowly.",
+        chart=lambda: hbars([("Base rate before 23 October", 16.25), ("Base rate after 23 October", 15.75), ("Annual inflation", 9.3)],
+                            unit="%", colour=CHART_HI, fmt="{:.2f}"),
+        chart_title="Kazakhstan: base rate and inflation, October 2026, %"),
+    "accenture-oct-2026": dict(
+        photos=[("news-accenture", "Accenture's office in Argentina")],
+        stat=("+16%", "Accenture's share price on 1 October"),
+        plain="Accenture earned more than analysts expected, and its share price jumped in a single day.",
+        chart=lambda: diverge_bars([("Peak during the day", 22, "more than +22%"), ("At the close", 16, "about +16%"),
+                                    ("Since the start of 2026", -18, "more than −18%")]),
+        chart_title="Accenture's share price, 1 October 2026"),
+    "mgm-people-bid-withdrawn": dict(
+        photos=[("news-mgm", "The MGM Grand in Las Vegas")],
+        stat=("$18 bn", "offer withdrawn, $48.30 a share"),
+        plain="A billionaire's company offered to buy out a casino group, then pulled out because it could not raise the money with partners.",
+        chart=lambda: stack_bar([("Already owned by People Inc.", 26, CHART_HI), ("Shares the offer was for", 74, GREY)]),
+        chart_title="MGM Resorts: what the offer covered, % of shares"),
+}
+
+
+def news_photo(key, cap, size="1400", pre=""):
+    who, pg, lic, lu = _cr(key)
+    ext = "-1400.jpg" if size == "1400" else "-800.jpg"
+    src = f"{pre}assets/photos/{key}{'.jpg' if key.startswith('learn-') else ext}"
+    return (f'<figure class="nw-photo"><img src="{src}" alt="{escape(cap)}" loading="lazy">'
+            f'<figcaption>{cap}. Photo: {credit(who, pg, lic, lu)}.</figcaption></figure>')
+
+
+def news_card(n, lead=False):
+    v = NEWS_VISUALS[n["id"]]
+    key, cap = v["photos"][0]
+    src = f"assets/photos/{key}{'.jpg' if key.startswith('learn-') else '-800.jpg'}"
+    return (f'<a class="nw-card{" lead" if lead else ""}" href="#{n["id"]}" data-tag="{_anchor(n["tag"])}"><div class="nw-img"><img src="{src}" alt="{escape(cap)}" loading="lazy">'
+            f'<span class="nw-tag">{n["tag"]}</span></div><div class="nw-cbody"><time>{n["date"]}</time><h3>{n["title"]}</h3>'
+            f'<div class="nw-stat"><b>{v["stat"][0]}</b><span>{v["stat"][1]}</span></div>'
+            + f'<p>{n["dek"]}</p>' + (f'<div class="nw-lead-plain"><span>In simple words</span>{v["plain"]}</div>'
+               f'<div class="nw-lead-chart"><div class="fig-title">{v["chart_title"]}</div>{v["chart"]()}</div>' if lead else "") + '</div></a>')
+
+
 def news_item(n, pre=""):
+    v = NEWS_VISUALS[n["id"]]
     rel = ""
     if n["related"]:
         rs = [r for r in REPORTS if r["slug"] in n["related"]]
-        rel = '<p class="news-rel">Related research: ' + "; ".join(f'<a href="{pre}{r["url"]}">{r["title"]}</a>' for r in rs) + "</p>"
+        rel = ('<div class="nw-rel"><div class="aside-label">Related research</div>' + "".join(
+            f'<a href="{pre}{r["url"]}"><img src="{pre}assets/photos/{ARTICLE_PHOTOS[r["slug"]][0]}-800.jpg" alt="" loading="lazy"><span>{r["title"]}</span></a>' for r in rs) + "</div>")
+    photos = "".join(news_photo(k, c, pre=pre) for k, c in v["photos"])
     tab = f'<div class="news-table">{table(*n["table"], num_from=2)}</div>' if n["table"] else ""
     srcs = "".join(f'<li><a href="{u}" rel="noopener">{escape(s)}</a></li>' for s, u in n["sources"])
-    return (f'<article class="news-item" id="{n["id"]}"><div class="news-meta"><time datetime="{n["iso"]}">{n["date"]}</time>'
-            f'<span class="news-tag">{n["tag"]}</span></div><div class="news-main"><h2>{n["title"]}</h2><p class="news-dek">{n["dek"]}</p>'
-            f'{n["body"]}{tab}<div class="news-why"><div class="aside-label">Why it matters</div><p>{n["why"]}</p></div>{rel}'
-            f'<div class="news-src"><span>Sources</span><ol>{srcs}</ol></div></div></article>')
+    return (f'<article class="nw-item" id="{n["id"]}" data-tag="{_anchor(n["tag"])}">'
+            f'<div class="nw-head"><div class="news-meta"><time datetime="{n["iso"]}">{n["date"]}</time><span class="news-tag">{n["tag"]}</span></div>'
+            f'<h2>{n["title"]}</h2><p class="news-dek">{n["dek"]}</p></div>'
+            f'<div class="nw-photos n{len(v["photos"])}">{photos}</div>'
+            f'<div class="nw-grid"><div class="nw-text"><div class="nw-plain"><span>In simple words</span><p>{v["plain"]}</p></div>{n["body"]}{tab}'
+            f'<div class="news-why"><div class="aside-label">Why it matters</div><p>{n["why"]}</p></div></div>'
+            f'<aside class="nw-side"><div class="nw-bigstat"><b>{v["stat"][0]}</b><span>{v["stat"][1]}</span></div>'
+            f'<figure class="nw-chart"><div class="fig-title">{v["chart_title"]}</div>{v["chart"]()}<figcaption>Source: {escape(n["sources"][0][0].split(",")[0])}.</figcaption></figure>'
+            f'{rel}</aside></div>'
+            f'<div class="news-src"><span>Sources</span><ol>{srcs}</ol></div></article>')
 
 
 news_tags = sorted({n["tag"] for n in NEWS})
-news = f'''<section class="page-head"><div class="wrap">
+ticker = "".join(f'<a href="#{n["id"]}"><b>{NEWS_VISUALS[n["id"]]["stat"][0]}</b><span>{NEWS_VISUALS[n["id"]]["stat"][1]}</span></a>' for n in NEWS)
+news = f'''<section class="nw-top"><div class="wrap">
 <div class="label">News</div>
 <h1>Markets, deals and rankings</h1>
-<p>Short briefs on the moves that matter in world and Central Asian finance: deals that collapse, shares that jump or fall, changes at the top
-of company rankings, and central bank decisions. Each brief gives the figures, the source and why the event matters.</p>
-<div class="news-index"><span>{len(NEWS)} briefs</span>{"".join(f'<span>{t}</span>' for t in news_tags)}<span>Updated {NEWS[0]["date"]}</span></div>
+<p>What moved in world and Central Asian finance, shown with the figures behind it: deals that collapse, shares that jump or fall,
+changes at the top of company rankings and central bank decisions. Each brief has a chart, a plain-language summary and its sources.</p>
+<div class="nw-ticker">{ticker}</div>
+<div class="filters nw-filters" data-g="news"><button class="on" data-f="all">All <span>{len(NEWS)}</span></button>{"".join(f'<button data-f="{_anchor(t)}">{t} <span>{sum(n["tag"] == t for n in NEWS)}</span></button>' for t in news_tags)}</div>
 </div></section>
-<section class="block"><div class="wrap"><div class="news-list">{"".join(news_item(n) for n in NEWS)}</div>
+<section class="block nw-cards-wrap"><div class="wrap"><div class="nw-cards">{news_card(NEWS[0], lead=True)}{"".join(news_card(n) for n in NEWS[1:])}</div></div></section>
+<section class="block"><div class="wrap"><div class="block-head"><h2>Full briefs</h2></div><div class="nw-list">{"".join(news_item(n) for n in NEWS)}</div>
 <p class="table-note">Briefs are written from the sources listed with each one. Figures are as reported on the date shown and are not updated afterwards. Not investment advice.</p>
 </div></section>'''
+
 page("news.html", "News · Steppe & Silk Research", news, "news.html",
      "Briefs on world and Central Asian finance: failed deals, sharp share moves, company rankings and central bank decisions.")
 

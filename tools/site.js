@@ -24,6 +24,9 @@
         r.hidden = !((state.type === 'all' || r.getAttribute('data-type') === state.type) &&
                      (state.sector === 'all' || r.getAttribute('data-sector') === state.sector));
       });
+      if (g === 'news') document.querySelectorAll('.nw-card, .nw-item').forEach(function (el) {
+        el.hidden = !(f === 'all' || el.getAttribute('data-tag') === f);
+      });
       if (g === 'type') document.querySelectorAll('[data-photo]').forEach(function (el) {
         el.hidden = el.getAttribute('data-photo') !== f;
       });
