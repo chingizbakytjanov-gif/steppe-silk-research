@@ -724,3 +724,12 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .about-timeline a { display: block; line-height: 1.35; } .about-timeline li::before { left: -24px; top: 4px; }
 @media (min-width: 761px) { .learn .hero-credit a { color: #fff; } } .hero-learn p { font-size: 18px; max-width: 720px; }
 @media (max-width: 760px) { .learn .hero .hero-credit a { color: var(--ink); } }
+
+/* About, strict version (3 Nov 2026): data-sheet tables and plain prose, no decoration */
+.about-strict .data-table.details td:first-child { width: 34%; color: var(--soft); font-weight: 500; white-space: nowrap; }
+.about-strict .data-table.details td { padding: 9px 12px 9px 0; vertical-align: top; }
+.about-strict .data-table.details thead { display: none; }
+.about-strict .data-table.log td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 13px; color: var(--soft); width: 110px; }
+.about-strict .data-table.log td:nth-child(2) { white-space: nowrap; color: var(--soft); width: 120px; }
+.about-strict ol li, .about-strict ul li { margin-bottom: 6px; }
+@media (max-width: 560px) { .about-strict .data-table.details td:first-child { white-space: normal; width: 40%; } }

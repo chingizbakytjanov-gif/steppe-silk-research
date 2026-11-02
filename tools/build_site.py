@@ -2696,62 +2696,57 @@ page("learn.html", "Learn · Steppe & Silk Research", learn, "learn.html",
 
 # ---------- About ----------
 
-ABOUT_STEPS = [
-    ("Read the source", "Every report starts with a primary document: an annual report, a results release, a stock exchange filing or a customs table."),
-    ("Check every number", "Figures are copied from the source, then checked against a second source where one exists. Where Kazakh and Chinese statistics disagree, both are shown."),
-    ("Draw it and share it", "Each chart is built from a spreadsheet that readers can download, so anyone can test the result."),
-    ("Write it plainly", "Reports explain what the numbers mean in plain English, cite every source and keep opinion in a separate section."),
+ABOUT_METHOD = [
+    "Each report starts from a primary source: an annual report, a results release, a stock exchange filing or a customs table.",
+    "Figures are taken from that source and checked against a second source where one exists.",
+    "Where national statistics disagree, as Kazakh and Chinese trade data often do, both series are shown and the choice is explained.",
+    "Every chart is built from a spreadsheet that is published with the report.",
+    "Opinion is kept to a separate, labelled section at the end of a report.",
 ]
-_timeline = sorted([(r["iso"], r["date_long"], r["kind"], r["title"], r["url"]) for r in REPORTS])
-_timeline.append(("2026-11-02", "2 November 2026", "Site", "News and Learn sections open", "news.html"))
-about = f'''<section class="page-head about-head"><div class="wrap">
-<div class="label">About</div>
-<h1>A student's research site about finance in Kazakhstan and China</h1>
-<p>Steppe &amp; Silk Research explains finance through real companies and real trade figures, for anyone who is interested,
-whether they are new to the subject or already work in it. Its focus is Kazakhstan and the economic ties between Kazakhstan, Central Asia and China.</p>
-<div class="about-stats"><div><b>8 Oct 2026</b><span>first report published</span></div><div><b>{len(REPORTS)}</b><span>research reports</span></div>
-<div><b>{len(NEWS)}</b><span>news briefs</span></div><div><b>{len(LESSONS)}</b><span>lessons in Learn</span></div><div><b>3</b><span>working languages</span></div></div>
+_details = [
+    ("Publication", "Steppe &amp; Silk Research, an independent online research publication"),
+    ("Subject", "Finance: companies in Kazakhstan and economic ties between Kazakhstan, Central Asia and China"),
+    ("Audience", "General readers, students and finance professionals"),
+    ("Formats", f"Company notes, trade briefs, news briefs, a beginners' course (Learn) and open datasets"),
+    ("Coverage", f"{len(REPORTS)} reports, {len(NEWS)} news briefs, {len(LESSONS)} lessons"),
+    ("Sources", "Company filings, stock exchange disclosures (KASE, AIX, HKEX), customs and national statistics"),
+    ("Languages of sources", "English, Russian, Kazakh"),
+    ("First published", "8 October 2026"),
+    ("Based in", "Astana, Kazakhstan"),
+    ("Editor", "Chingiz Bakytzhanov"),
+    ("Status", "Not investment advice; no advertising, cookies or analytics"),
+]
+_log = sorted([(r["iso"], r["date"], r["kind"], r["title"], r["url"]) for r in REPORTS], reverse=True)
+about = f'''<section class="page-head"><div class="wrap">
+<h1>About</h1>
+<p>Steppe &amp; Silk Research explains finance through companies in Kazakhstan and the country's economic ties with Central Asia and China.
+It is written for anyone with an interest in the subject, from first-time readers to professionals.</p>
 </div></section>
-<section class="block"><div class="wrap"><div class="about-grid">
-<div class="prose about-main">
-<h2>Who makes it</h2>
-<p>The site is written and built by <b>Chingiz Bakytzhanov</b>, a first-year university student in Astana who wants to work in finance.
-He started it in October 2026. Each report comes from reading company reports and trade statistics himself, checking the
-numbers and writing up what they show. He works in Kazakh, Russian and English, which helps with sources that are not published in English.</p>
-<p>It is a student project in the way that matters most: it is where finance is learned in public. Each report is a piece of homework that
-anyone can check, because the sources are linked and the data can be downloaded.</p>
-<h2>Why Kazakhstan and China</h2>
-<p>China is Kazakhstan's largest trading partner, Kazakh companies sell uranium, oil and metals to Chinese buyers, and airlines, banks and
-carmakers on both sides are building new links. Much of this is reported in Russian, Kazakh or Chinese, or not explained at all. The site
-tries to make it readable for everyone.</p>
-<h2>How a report is made</h2>
-<ol class="about-steps">{"".join(f'<li><b>{a}</b><span>{b}</span></li>' for a, b in ABOUT_STEPS)}</ol>
-<h2>House rules</h2>
-<ul class="about-rules">
+<section class="block"><div class="wrap"><div class="prose about-strict">
+<h2>Site details</h2>
+{table(["", ""], [[k, v] for k, v in _details], num_from=9, cls="details")}
+<h2>Purpose</h2>
+<p>China is the largest trading partner of each Central Asian country, and Kazakh companies sell uranium, oil and metals to Chinese buyers.
+Much of the information about these links is published in Russian, Kazakh or Chinese, or spread across filings that few readers open.
+The publication brings it together in English, with the figures checked and the sources linked.</p>
+<h2>Editor</h2>
+<p>The publication is edited and written by Chingiz Bakytzhanov, a first-year university student in Astana. It is an independent student
+project and is not affiliated with any company, university or government body.</p>
+<h2>Method</h2>
+<ol>{"".join(f"<li>{m}</li>" for m in ABOUT_METHOD)}</ol>
+<h2>Standards</h2>
+<ul>
 <li>Every figure links to its source.</li>
 <li>The data behind each chart can be <a href="data.html">downloaded</a>.</li>
-<li>When sources disagree, the report says which figure it uses and why.</li>
-<li>The author's own opinion appears only under "My view" or "Author's comment".</li>
-<li>Nothing here is investment advice.</li>
+<li>Nothing published here is investment advice.</li>
 </ul>
-</div>
-<aside class="about-side">
-<div class="aside-card"><div class="aside-label">Explore</div>
-<a class="about-link" href="research.html"><b>Research</b><span>{len(REPORTS)} company notes and trade briefs</span></a>
-<a class="about-link" href="news.html"><b>News</b><span>Markets, deals and rankings with charts</span></a>
-<a class="about-link" href="learn.html"><b>Learn</b><span>Six lessons and a glossary for beginners</span></a>
-<a class="about-link" href="data.html"><b>Data</b><span>Spreadsheets behind every chart</span></a></div>
-<div class="aside-card"><div class="aside-label">Timeline</div><ol class="about-timeline">
-{"".join(f'<li><time>{d}</time><a href="{u}"><span>{k}</span>{ti}</a></li>' for _, d, k, ti, u in reversed(_timeline))}
-</ol></div>
-</aside>
-</div>
-<div class="prose"><h2 id="contact">Contact</h2>
-<p>Questions about a report, a data request, an error you have spotted or an idea for collaboration: write to Chingiz.</p>
-<ul class="contact-list"><li><span>Email</span><a href="mailto:{EMAIL}">{EMAIL}</a></li></ul></div>
-</div></section>'''
+<h2>Publication record</h2>
+{table(["Date", "Type", "Title"], [[d, k, f'<a href="{u}">{ti}</a>'] for _, d, k, ti, u in _log], num_from=9, cls="log")}
+<h2 id="contact">Contact</h2>
+<p>Questions about a report, data requests, errors and proposals for collaboration: <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
+</div></div></section>'''
 page("about.html", "About · Steppe & Silk Research", about, "about.html",
-     "Who makes Steppe & Silk Research, why it covers Kazakhstan and China, and how each report is made.")
+     "About Steppe & Silk Research: purpose, editor, method, standards and publication record.")
 
 
 # ---------- Terms and Privacy ----------
