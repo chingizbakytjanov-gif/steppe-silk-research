@@ -733,3 +733,8 @@ html.scrolled .site-header { box-shadow: 0 6px 24px rgba(0,0,0,.06); }
 .about-strict .data-table.log td:nth-child(2) { white-space: nowrap; color: var(--soft); width: 120px; }
 .about-strict ol li, .about-strict ul li { margin-bottom: 6px; }
 @media (max-width: 560px) { .about-strict .data-table.details td:first-child { white-space: normal; width: 40%; } }
+
+/* About: the editor's own words */
+.about-quote { max-width: 620px; margin: 18px 0 8px; padding: 14px 18px; background: var(--tint); border-left: 3px solid var(--accent2); }
+.about-quote p { margin: 0; color: var(--ink); }
+.about-quote footer { margin-top: 8px; font-size: 13px; color: var(--soft); }
