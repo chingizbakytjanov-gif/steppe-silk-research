@@ -1,7 +1,39 @@
 {
   "redirects": [
-    { "source": "/companies.html", "destination": "/research.html#companies", "permanent": true },
-    { "source": "/trade.html", "destination": "/research.html#trade", "permanent": true },
-    { "source": "/contact.html", "destination": "/about.html#contact", "permanent": true }
+    {
+      "source": "/companies.html",
+      "destination": "/research.html#companies",
+      "permanent": true
+    },
+    {
+      "source": "/trade.html",
+      "destination": "/research.html#trade",
+      "permanent": true
+    },
+    {
+      "source": "/contact.html",
+      "destination": "/about.html#contact",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(photos|flags|logos)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000"
+        }
+      ]
+    },
+    {
+      "source": "/og/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
+    }
   ]
 }
