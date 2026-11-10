@@ -1,28 +1,6 @@
 {
   "redirects": [
     {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.steppesilk.com"
-        }
-      ],
-      "destination": "https://steppesilk.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "steppe-silk-research.vercel.app"
-        }
-      ],
-      "destination": "https://steppesilk.com/:path*",
-      "permanent": true
-    },
-    {
       "source": "/companies.html",
       "destination": "/research.html#companies",
       "permanent": true
