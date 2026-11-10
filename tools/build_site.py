@@ -9,7 +9,7 @@ from html import escape
 
 OUT = sys.argv[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
-SITE = "https://steppesilk.com"
+SITE = "https://www.steppesilk.com"   # the address Vercel serves; steppesilk.com redirects here
 AUTHOR = "Chingiz Bakytzhanov"
 EMAIL = "chingiz.bakytjanov@gmail.com"
 

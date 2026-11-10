@@ -3,11 +3,11 @@
 
 Run from the repository root after a deploy:  python3 tools/indexnow.py
 Reads sitemap.xml and the key from the <key>.txt file in the site root. No account is needed:
-the search engines check that https://steppesilk.com/<key>.txt holds the same key.
+the search engines check that https://www.steppesilk.com/<key>.txt holds the same key.
 """
 import glob, json, re, sys, urllib.request
 
-HOST = "steppesilk.com"
+HOST = "www.steppesilk.com"
 keys = [f for f in glob.glob("*.txt") if re.fullmatch(r"[0-9a-f]{32}\.txt", f)]
 if len(keys) != 1:
     sys.exit(f"expected one key file in the site root, found {keys}")
