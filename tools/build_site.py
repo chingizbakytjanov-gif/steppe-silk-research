@@ -19,6 +19,15 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400'
          '&display=swap" rel="stylesheet">')
 
+# Vercel Web Analytics: page views without cookies. Counts only after it is switched on in the Vercel project (Analytics tab).
+# It loads on the live site only, so local previews and tools/check_site.js stay quiet.
+ANALYTICS = ('<script>if(/(^|\\.)steppesilk\\.com$/.test(location.hostname)){'
+             'window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};'
+             'var s=document.createElement("script");s.defer=true;s.src="/_vercel/insights/script.js";'
+             'document.head.appendChild(s)}</script>')
+UPDATED = "2026-11-10"   # last change to the section pages; goes into sitemap.xml
+INDEXNOW_KEY = "7764a7a136122a2263adc28cc5df8546"   # also the name of the .txt file in the site root; used by tools/indexnow.py
+
 INK, GREY, ACCENT, MUTED = "#13233d", "#bcc6d6", "#2b4c7e", "#5d6a82"
 CHART_HI = "#2b4c7e"  # charts: grey-blue bars, muted navy for the highlight and the second series (palette of 2 Nov 2026)
 CHART_FONT = "IBM Plex Sans,Arial"
@@ -43,7 +52,8 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
     url = SITE + "/" + ("" if path == "index.html" else path)
     nav = "".join(f'<a href="{pre}{h}"{" class=\"active\"" if h == active else ""}>{n}</a>' for h, n in NAV)
     foot_nav = "".join(f'<a href="{pre}{h}">{n}</a>' for h, n in NAV)
-    ld_tag = f'<script type="application/ld+json">{json.dumps(ld)}</script>\n' if ld else ""
+    lds = ld if isinstance(ld, list) else ([ld] if ld else [])
+    ld_tag = "".join(f'<script type="application/ld+json">{json.dumps(x)}</script>\n' for x in lds)
     html = f'''<!doctype html>
 <html lang="en">
 <head>
@@ -68,7 +78,9 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 <link rel="stylesheet" href="{pre}assets/style.css">
 <link rel="icon" href="{pre}assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="{pre}assets/apple-touch-icon.png">
+<link rel="alternate" type="application/atom+xml" title="Steppe &amp; Silk Research" href="{SITE}/feed.xml">
 <script src="{pre}assets/site.js" defer></script>
+{ANALYTICS}
 </head>
 <body>
 <div id="progress"></div>
@@ -89,6 +101,8 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 </body>
 </html>
 '''
+    if 'fetchpriority' not in html:   # the top photo is the largest thing on the page: fetch it first
+        html = html.replace('<img class="hero-img" ', '<img class="hero-img" fetchpriority="high" ', 1)
     write(path, html)
 
 
@@ -469,8 +483,15 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
           "publisher": {"@type": "Organization", "name": "Steppe & Silk Research", "url": SITE + "/",
                         "logo": {"@type": "ImageObject", "url": SITE + "/assets/apple-touch-icon.png"}},
           "image": f"{SITE}/og/{r['slug']}.png", "description": r["summary"]}
+    crumbs = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Steppe & Silk Research", "item": SITE + "/"},
+        {"@type": "ListItem", "position": 2, "name": "Research", "item": SITE + "/research.html"},
+        {"@type": "ListItem", "position": 3, "name": r["title"], "item": f"{SITE}/{r['url']}"}]}
+    # Search snippet: the one-line result plus the first sentence of the summary.
+    first = r["summary"].split(". ")[0].rstrip(".") + "."
+    desc = r["line"] if len(r["line"]) + len(first) > 230 else r["line"] + " " + first
     page(r["url"], r["title"] + " · Steppe & Silk Research", body, "research.html",
-         r["line"], og=f"og/{r['slug']}.png", kind="article", ld=ld)
+         desc, og=f"og/{r['slug']}.png", kind="article", ld=[ld, crumbs])
 
 
 def fig(n, title, chart, source_html, data_base):
@@ -767,7 +788,12 @@ def owners_section(r, pre):
     o = OWNERS.get(r["slug"])
     if not o:
         return ""
-    links = "; ".join(f'<a href="{u}" rel="noopener">{escape(n.split(",")[0])}</a>' for n, u in o["sources"])
+    seen, uniq = set(), []
+    for n, u in o["sources"]:
+        if n.split(",")[0] not in seen:
+            seen.add(n.split(",")[0])
+            uniq.append((n, u))
+    links = "; ".join(f'<a href="{u}" rel="noopener">{escape(n.split(",")[0])}</a>' for n, u in uniq)
     chart = ""
     if o["rows"]:
         chart = (f'<figure class="figure"><div class="fig-title">Who owns the company, % of shares in circulation, {o["date"]}</div>'
@@ -1028,7 +1054,7 @@ halyk_sections = f'''<h2>Key findings</h2><ol>
 {val_table('HSBK', 2)}
 <p class="table-note">Book value is total equity at 30 June 2026. Dividend yield uses both payments for 2025. Sources: KASE; KASE, Halyk shares; {src_link(3, SRC_HALYK)}.</p>
 <h2>Risks</h2><ol>
-<li>The National Bank kept its base rate at 18% in March 2026. If rates stay high longer, deposits stay expensive and the margin stays under pressure.</li>
+<li>The National Bank kept its base rate at 18% in March 2026 and had lowered it to 15.75% by 23 October 2026 (<a href="../news.html">News</a>). That is still high: if rates stay high longer, deposits stay expensive and the margin stays under pressure.</li>
 <li>Further limits on consumer lending would slow the bank's retail loan book.</li>
 <li>A slowdown in Kazakhstan's economy would raise the cost of risk, which is now low.</li></ol>
 {view("view_halyk.txt")}'''
@@ -2017,7 +2043,7 @@ NUMBERS = [("$228.1 bn", "China-Russia trade, 2025", RU), ("$34.1 bn", "Kazakhst
            ("25,839 t", "Uranium mined by Kazatomprom, 2025", KAP), ("+158%", "Geely exports, 1H 2026", GEELY)]
 home = f'''<section class="masthead hero">
 <img class="hero-img" src="assets/photos/hero-ktz-2400.jpg" srcset="assets/photos/hero-ktz-1200.jpg 1200w, assets/photos/hero-ktz-2400.jpg 2400w"
- sizes="100vw" width="2400" height="767" alt="A long freight train of Kazakhstan Temir Zholy crossing the steppe, with hills behind">
+ sizes="100vw" width="2400" height="767" fetchpriority="high" alt="A long freight train of Kazakhstan Temir Zholy crossing the steppe, with hills behind">
 <div class="hero-shade"></div>
 <div class="wrap">
 <div class="hero-kicker">Independent student research · Astana, Kazakhstan</div>
@@ -2139,8 +2165,9 @@ research = f'''<section class="hero hero-research">
 {research_credits}
 </section>
 <section class="block"><div class="wrap"><div class="rows" id="rows">{"".join(row(r) for r in REPORTS)}</div></div></section>'''
-page("research.html", "Research · Steppe & Silk Research", research, "research.html",
-     "Company notes and trade briefs on Kazakhstan, Central Asia and China.")
+page("research.html", "Research on Kazakh companies and trade with China · Steppe & Silk Research", research, "research.html",
+     "Company notes on Kaspi.kz, Halyk Bank, Kazatomprom, KazMunayGas, Air Astana, Geely and China Southern, "
+     "and trade briefs on Kazakhstan, Central Asia, China and Russia.")
 
 # ---------- Data ----------
 
@@ -2190,8 +2217,21 @@ data_page = f'''<section class="page-head"><div class="wrap">
 <div class="table-wrap"><table class="data-table datasets"><thead><tr><th>Dataset</th><th>Years</th><th>Unit</th><th>Source</th><th>Download</th><th>Used in</th></tr></thead>
 <tbody>{drows}</tbody></table></div>
 </div></section>'''
-page("data.html", "Data · Steppe & Silk Research", data_page, "data.html",
-     "Download the data behind Steppe & Silk Research reports on Kazakhstan, Central Asia and China.")
+DATA_LD = {"@context": "https://schema.org", "@type": "DataCatalog", "name": "Steppe & Silk Research data",
+           "url": SITE + "/data.html", "creator": {"@type": "Organization", "name": "Steppe & Silk Research", "url": SITE + "/"},
+           "dataset": [{"@type": "Dataset", "name": d["name"] + ", " + d["cover"],
+                        "description": f'{d["what"]} Unit: {d["unit"]}. Source: {d["src"]}.',
+                        "url": SITE + "/" + (d["r"]["url"] if d["r"] else "data.html"),
+                        "temporalCoverage": d["cover"], "isAccessibleForFree": True, "license": SITE + "/terms.html",
+                        "creator": {"@type": "Person", "name": AUTHOR, "url": SITE + "/about.html"},
+                        "distribution": [
+                            {"@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": f'{SITE}/{d["base"]}.csv'},
+                            {"@type": "DataDownload", "contentUrl": f'{SITE}/{d["base"]}.xlsx',
+                             "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}]}
+                       for d in DATASETS]}
+page("data.html", "Open data on Kazakh companies and China trade (XLSX, CSV) · Steppe & Silk Research", data_page, "data.html",
+     "Free spreadsheets behind every report: Kaspi.kz, Halyk Bank, Kazatomprom, KazMunayGas, Air Astana, Geely, "
+     "China Southern, and Kazakhstan, Central Asia and Russia trade with China.", ld=DATA_LD)
 
 # ---------- News ----------
 # Short briefs on markets, deals and rankings. Newest first. Every figure is taken from the source listed with it.
@@ -2401,7 +2441,7 @@ changes at the top of company rankings and central bank decisions. Each brief ha
 <p class="table-note">Briefs are written from the sources listed with each one. Figures are as reported on the date shown and are not updated afterwards. Not investment advice.</p>
 </div></section>'''
 
-page("news.html", "News · Steppe & Silk Research", news, "news.html",
+page("news.html", "Finance news briefs: Kazakhstan, China and world markets · Steppe & Silk Research", news, "news.html",
      "Briefs on world and Central Asian finance: failed deals, sharp share moves, company rankings and central bank decisions.")
 
 for _r in REPORTS:  # finish each report's sidebar: related news, then related research with pictures
@@ -2708,8 +2748,9 @@ and how money moves between countries. Every lesson uses real figures from the r
 <section class="lesson refs"><div class="lesson-num">Further reading</div><h2>References</h2><ol class="sources">{"".join(f'<li><a href="{u}" rel="noopener">{escape(n)}</a></li>' for n, u in LEARN_REFS)}</ol></section>
 </div></div></section></div>'''
 
-page("learn.html", "Learn · Steppe & Silk Research", learn, "learn.html",
-     "A short course and glossary on finance: company accounts, valuation, banks, audit, consulting and global finance.")
+page("learn.html", "Learn finance: a beginner's course with examples from Kazakhstan · Steppe & Silk Research", learn, "learn.html",
+     "A free six-lesson course and glossary for beginners: company accounts, valuation, banks, audit, consulting "
+     "and global finance, with examples from Kazakh and Chinese companies.")
 
 
 # ---------- About ----------
@@ -2732,7 +2773,7 @@ _details = [
     ("First published", "8 October 2026"),
     ("Based in", "Astana, Kazakhstan"),
     ("Editor", "Chingiz Bakytzhanov"),
-    ("Status", "Not investment advice; no advertising, cookies or analytics"),
+    ("Status", "Not investment advice; no advertising or cookies; anonymous visit counts only"),
 ]
 _log = sorted([(r["iso"], r["date"], r["kind"], r["title"], r["url"]) for r in REPORTS], reverse=True)
 about = f'''<section class="page-head"><div class="wrap">
@@ -2786,12 +2827,13 @@ terms = f'''<section class="page-head"><div class="wrap"><h1>Terms of use</h1><p
 page("terms.html", "Terms of use · Steppe & Silk Research", terms, "",
      "Terms of use for Steppe & Silk Research.")
 
-privacy = f'''<section class="page-head"><div class="wrap"><h1>Privacy policy</h1><p>Last updated 11 October 2026</p></div></section>
+privacy = f'''<section class="page-head"><div class="wrap"><h1>Privacy policy</h1><p>Last updated 10 November 2026</p></div></section>
 <section class="block"><div class="wrap"><div class="prose">
-<p class="lead">This site does not use cookies, analytics or advertising trackers, and it has no accounts or forms.</p>
+<p class="lead">This site does not use cookies or advertising trackers, and it has no accounts or forms. It counts visits anonymously.</p>
 <h2>What is collected</h2>
 <ul>
 <li><b>Server logs.</b> The site is hosted by Vercel. Like any web host, Vercel records technical data such as your IP address, browser and the pages requested, to deliver the site and protect it from abuse.</li>
+<li><b>Visit statistics.</b> Page views are counted with Vercel Web Analytics. It sets no cookies and does not follow you across sites or visits. It records the page opened, the site you came from, your country, and the type of browser and device, and shows them only as totals.</li>
 <li><b>Fonts.</b> The typefaces are loaded from Google Fonts, so your browser sends your IP address to Google when a page opens.</li>
 <li><b>Email.</b> If you write to <a href="mailto:{EMAIL}">{EMAIL}</a>, your message and address are kept only to reply to you and are never shared or sold.</li>
 </ul>
@@ -2811,8 +2853,21 @@ redirect("contact.html", "about.html#contact")
 # ---------- Sitemap, assets, link-preview cards ----------
 
 urls = ["", "research.html", "news.html", "learn.html", "data.html", "about.html", "terms.html", "privacy.html"] + [r["url"] for r in REPORTS]
+_mod = {r["url"]: max(r.get("modified", r["iso"]), r["iso"]) for r in REPORTS}
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>2026-11-02</lastmod></url>\n" for u in urls) + "</urlset>\n")
+      + "".join(f"  <url><loc>{SITE}/{u}</loc><lastmod>{_mod.get(u, UPDATED)}</lastmod></url>\n" for u in urls) + "</urlset>\n")
+
+# Atom feed of the reports, newest first: for feed readers and for sites that list new research.
+_by_date = sorted(REPORTS, key=lambda r: r["iso"], reverse=True)
+write("feed.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<feed xmlns="http://www.w3.org/2005/Atom">\n'
+      f'<title>Steppe &amp; Silk Research</title>\n<subtitle>Research on Kazakh companies and trade with China</subtitle>\n'
+      f'<link href="{SITE}/"/>\n<link rel="self" href="{SITE}/feed.xml"/>\n<id>{SITE}/</id>\n'
+      f'<updated>{_by_date[0]["iso"]}T00:00:00Z</updated>\n<author><name>{AUTHOR}</name></author>\n'
+      + "".join(f'<entry><title>{escape(r["title"])}</title><link href="{SITE}/{r["url"]}"/><id>{SITE}/{r["url"]}</id>'
+                f'<published>{r["iso"]}T00:00:00Z</published><updated>{_mod[r["url"]]}T00:00:00Z</updated>'
+                f'<category term="{r["kind"]}"/><summary>{escape(r["summary"])}</summary></entry>\n' for r in _by_date)
+      + "</feed>\n")
+write(INDEXNOW_KEY + ".txt", INDEXNOW_KEY)
 
 write("assets/favicon.svg", FAVICON)
 for name in ("style.css", "site.js"):
