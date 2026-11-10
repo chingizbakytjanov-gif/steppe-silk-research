@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = "https://www.steppesilk.com"   # the address Vercel serves; steppesilk.com redirects here
 AUTHOR = "Chingiz Bakytzhanov"
 EMAIL = "chingiz.bakytjanov@gmail.com"
+LINKEDIN = "https://www.linkedin.com/in/chingiz-bakytzhanov-8267bb379"
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
@@ -2758,6 +2759,8 @@ ABOUT_METHOD = [
     "Where national statistics disagree, as Kazakh and Chinese trade data often do, both series are shown and the choice is explained.",
     "Every chart is built from a spreadsheet that is published with the report.",
     "Opinion is kept to a separate, labelled section at the end of a report.",
+    "Totals, growth rates, margins, shares and valuation ratios are recomputed by an automatic check every time the site changes, "
+    "and the published spreadsheets are compared with the figures on the pages.",
 ]
 _details = [
     ("Publication", "Steppe &amp; Silk Research, an independent online research publication"),
@@ -2766,7 +2769,7 @@ _details = [
     ("Formats", f"Company notes, trade briefs, news briefs, a beginners' course (Learn) and open datasets"),
     ("Coverage", f"{len(REPORTS)} reports, {len(NEWS)} news briefs, {len(LESSONS)} lessons"),
     ("Sources", "Company filings, stock exchange disclosures (KASE, AIX, HKEX), customs and national statistics"),
-    ("Languages of sources", "English, Russian, Kazakh"),
+    ("Languages of sources", "Mostly English, some Russian"),
     ("First published", "8 October 2026"),
     ("Based in", "Astana, Kazakhstan"),
     ("Editor", "Chingiz Bakytzhanov"),
@@ -2785,9 +2788,22 @@ It is written for anyone with an interest in the subject, from first-time reader
 <p>China is the largest trading partner of each Central Asian country, and Kazakh companies sell uranium, oil and metals to Chinese buyers.
 Much of the information about these links is published in Russian, Kazakh or Chinese, or spread across filings that few readers open.
 The publication brings it together in English, with the figures checked and the sources linked.</p>
-<h2>Editor</h2>
-<p>The publication is edited and written by Chingiz Bakytzhanov, a first-year university student in Astana. It is an independent student
-project and is not affiliated with any company, university or government body.</p>
+<h2 id="editor">Editor</h2>
+<p>The publication is edited by Chingiz Bakytzhanov, a first-year student of tourism at Astana International University. It is an independent
+student project and is not affiliated with any company, university or government body.
+Profile: <a href="{LINKEDIN}" rel="noopener me">LinkedIn</a>.</p>
+<blockquote class="about-quote"><p>I started this site so that anyone can see how the largest companies of Kazakhstan and China are doing:
+what they earn, what they lose and how strong their finances are, and how the two countries trade with each other. A reader who has never
+studied finance can start with the Learn section, where everything is explained step by step. I also want it to be useful to people who
+work in these industries and to investors.</p><footer>Chingiz Bakytzhanov</footer></blockquote>
+<h2 id="how">How the site is made</h2>
+<p>The editor chooses the companies and topics, finds the sources, does the calculations, prepares the PDF versions and decides the structure
+and design of the site. He reads sources mostly in English and sometimes in Russian.</p>
+<p>AI tools (Claude, made by Anthropic) are used to build the site's code and layout from the editor's direction, to help draft and edit text,
+and to recheck the arithmetic. AI is not treated as a source: every figure is traced to a document that is linked in the report.</p>
+<h2 id="disclosure">Disclosure</h2>
+<p>As of 10 November 2026 the editor holds no shares in any company covered on this site. If that changes, it will be stated here and in the
+report on that company.</p>
 <h2>Method</h2>
 <ol>{"".join(f"<li>{m}</li>" for m in ABOUT_METHOD)}</ol>
 <h2>Standards</h2>
@@ -2801,8 +2817,13 @@ project and is not affiliated with any company, university or government body.</
 <h2 id="contact">Contact</h2>
 <p>Questions about a report, data requests, errors and proposals for collaboration: <a href="mailto:{EMAIL}">{EMAIL}</a>.</p>
 </div></div></section>'''
-page("about.html", "About · Steppe & Silk Research", about, "about.html",
-     "About Steppe & Silk Research: purpose, editor, method, standards and publication record.")
+ABOUT_LD = {"@context": "https://schema.org", "@type": "AboutPage", "url": SITE + "/about.html", "name": "About Steppe & Silk Research",
+            "mainEntity": {"@type": "Person", "name": AUTHOR, "url": SITE + "/about.html#editor", "jobTitle": "Editor", "sameAs": [LINKEDIN],
+                           "worksFor": {"@type": "Organization", "name": "Steppe & Silk Research", "url": SITE + "/"},
+                           "affiliation": {"@type": "CollegeOrUniversity", "name": "Astana International University"},
+                           "homeLocation": {"@type": "Place", "name": "Astana, Kazakhstan"}}}
+page("about.html", "About the editor and method · Steppe & Silk Research", about, "about.html",
+     "Who writes Steppe & Silk Research, how figures are sourced and checked, how AI is used, and the editor's disclosure.", ld=ABOUT_LD)
 
 
 # ---------- Terms and Privacy ----------
