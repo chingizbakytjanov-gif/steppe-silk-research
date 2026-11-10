@@ -1,0 +1,7 @@
+{
+  "redirects": [
+    { "source": "/companies.html", "destination": "/research.html#companies", "permanent": true },
+    { "source": "/trade.html", "destination": "/research.html#trade", "permanent": true },
+    { "source": "/contact.html", "destination": "/about.html#contact", "permanent": true }
+  ]
+}

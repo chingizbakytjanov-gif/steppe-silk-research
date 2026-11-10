@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+# Build helpers (link-preview and PDF templates), not pages for readers
+Disallow: /tools/
 
 Sitemap: https://steppesilk.com/sitemap.xml

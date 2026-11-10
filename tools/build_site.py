@@ -93,8 +93,10 @@ def page(path, title, body, active, desc, og="og/home.png", kind="website", ld=N
 
 
 def redirect(path, target):
-    write(path, f'<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url={target}">'
-                f'<link rel="canonical" href="{target}"><a href="{target}">Moved</a>\n')
+    # Old URLs: vercel.json answers them with a 301; this file is the fallback and stays out of search results.
+    write(path, f'<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex">'
+                f'<meta http-equiv="refresh" content="0; url={target}">'
+                f'<link rel="canonical" href="{SITE}/{target.split("#")[0]}"><a href="{target}">Moved</a>\n')
 
 
 # ---------- Charts ----------
@@ -461,8 +463,11 @@ def report(r, sections, facts, sources, disclaimer=False, meta=None):
 </div></article>'''
     body = add_aside(body, r, pre, len(sources))
     ld = {"@context": "https://schema.org", "@type": "Article", "headline": r["title"],
-          "datePublished": r["iso"], "author": {"@type": "Person", "name": AUTHOR},
-          "publisher": {"@type": "Organization", "name": "Steppe & Silk Research"},
+          "datePublished": r["iso"], "dateModified": r.get("modified", r["iso"]),
+          "mainEntityOfPage": f"{SITE}/{r['url']}", "inLanguage": "en",
+          "author": {"@type": "Person", "name": AUTHOR, "url": SITE + "/about.html"},
+          "publisher": {"@type": "Organization", "name": "Steppe & Silk Research", "url": SITE + "/",
+                        "logo": {"@type": "ImageObject", "url": SITE + "/assets/apple-touch-icon.png"}},
           "image": f"{SITE}/og/{r['slug']}.png", "description": r["summary"]}
     page(r["url"], r["title"] + " · Steppe & Silk Research", body, "research.html",
          r["line"], og=f"og/{r['slug']}.png", kind="article", ld=ld)
@@ -2076,9 +2081,22 @@ and the data can be downloaded.</p>
     dict(name="Kazakhstan-China goods trade", cover="2020-2025 · Kazakh and Chinese data · top products", base=TRADE["data"]),
     dict(name="Kaspi.kz key financials", cover="2023-2025 · revenue by segment, net income, margins", base=KASPI["data"])])}</div>
 </div></section>'''
-page("index.html", "Steppe & Silk Research", home, "",
-     "Reports on Kazakh companies and on Kazakhstan's trade with China, with the data behind each chart.",
-     ld={"@context": "https://schema.org", "@type": "WebSite", "name": "Steppe & Silk Research", "url": SITE})
+# WebSite name + alternateName is what Google uses for the site name shown in results;
+# Organization gives it a logo and links the author.
+SITE_LD = {"@context": "https://schema.org", "@graph": [
+    {"@type": "WebSite", "@id": SITE + "/#website", "name": "Steppe & Silk Research",
+     "alternateName": ["Steppe and Silk Research", "Steppe Silk Research", "Steppe & Silk", "steppesilk.com"],
+     "url": SITE + "/", "inLanguage": "en", "publisher": {"@id": SITE + "/#org"}},
+    {"@type": "Organization", "@id": SITE + "/#org", "name": "Steppe & Silk Research",
+     "alternateName": "Steppe Silk Research", "url": SITE + "/",
+     "logo": SITE + "/assets/apple-touch-icon.png",
+     "description": "Independent student research on companies and trade in Kazakhstan, Central Asia and China.",
+     "areaServed": ["Kazakhstan", "Central Asia", "China"],
+     "founder": {"@type": "Person", "name": AUTHOR, "url": SITE + "/about.html"}}]}
+page("index.html", "Steppe & Silk Research: Kazakhstan and China finance research", home, "",
+     "Independent finance research on Kazakh companies (Kaspi.kz, Halyk Bank, Kazatomprom, KazMunayGas, Air Astana) "
+     "and Kazakhstan's trade with China, with the data behind each chart.",
+     ld=SITE_LD)
 
 # ---------- Research ----------
 
