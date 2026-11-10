@@ -2057,7 +2057,7 @@ and the data can be downloaded.</p>
 </section>
 <section class="pillars"><div class="wrap"><div class="block-head"><h2>What you will find here</h2></div><div class="pillar-grid">
 <a class="pillar" href="research.html"><img src="assets/photos/research-research-1200.jpg" alt="" loading="lazy"><span class="pillar-n">{len(REPORTS)} reports</span><b>Research</b><span>Company notes on Kaspi, Halyk, Kazatomprom, KazMunayGas, Air Astana, Geely and China Southern, and trade briefs on Kazakhstan, Central Asia, China and Russia.</span></a>
-<a class="pillar" href="news.html"><img src="assets/photos/news-apple-800.jpg" alt="" loading="lazy"><span class="pillar-n">News briefs</span><b>News</b><span>Deals, sharp share moves, company rankings and central bank decisions, each with a chart and a plain-language summary.</span></a>
+<a class="pillar" href="news.html"><img src="assets/photos/article-aa-800.jpg" alt="" loading="lazy"><span class="pillar-n">News briefs</span><b>News</b><span>Deals, trade and central bank decisions that link Kazakhstan and China, each with a chart and a plain-language summary.</span></a>
 <a class="pillar" href="learn.html"><img src="assets/photos/learn-fse.jpg" alt="" loading="lazy"><span class="pillar-n">6 lessons · glossary</span><b>Learn</b><span>A short course for beginners: accounts, valuation, banks, audit and consulting, and how money moves between countries.</span></a>
 <a class="pillar" href="data.html"><img src="assets/photos/research-trade-1200.jpg" alt="" loading="lazy"><span class="pillar-n">XLSX and CSV</span><b>Data</b><span>The spreadsheets behind every chart, free to download and reuse with a citation.</span></a>
 </div></div></section>
@@ -2234,24 +2234,39 @@ page("data.html", "Open data on Kazakh companies and China trade (XLSX, CSV) · 
      "China Southern, and Kazakhstan, Central Asia and Russia trade with China.", ld=DATA_LD)
 
 # ---------- News ----------
-# Short briefs on markets, deals and rankings. Newest first. Every figure is taken from the source listed with it.
+# Short briefs on deals, trade and rates that link Kazakhstan, Central Asia and China. Newest first. Every figure is taken from the source listed with it.
 
 NEWS = [
-    dict(id="apple-nvidia-oct-2026", date="30 Oct 2026", iso="2026-10-30", tag="Rankings",
-         title="Apple passes Nvidia as the world's most valuable listed company",
-         dek="At the close on 30 October Apple was worth about $5.03 trillion and Nvidia $4.93 trillion.",
-         body="<p>Apple ended October as the largest company on the stock market, ahead of Nvidia, which had held the top place for most of the year. "
-              "Over the month Apple's shares rose 3.5% while Nvidia's fell 10.4%. Microsoft was third at $3.88 trillion.</p>"
-              "<p>The change came during a broad fall in technology shares, as investors questioned how quickly spending on artificial intelligence "
-              "will pay off. Alphabet lost 18.7% of its value in October and Meta Platforms 15.2%.</p>",
-         why="At this size a few per cent of share price changes the ranking. The $0.1 trillion gap between the top two is larger than the combined "
-             "market value of the five Kazakh companies covered on this site, about $92 billion.",
-         table=(["Rank", "Company", "Market value, $ trillion", "Change in October"],
-                [["1", "Apple", "5.03", "+3.5%"], ["2", "Nvidia", "4.93", "−10.4%"], ["3", "Microsoft", "3.88", "+1.8%"],
-                 ["4", "Alphabet", "3.44", "−18.7%"], ["5", "Amazon", "2.60", "−3.5%"]]),
-         sources=[("TradingKey, World's largest companies by market cap, October 2026 (close of 30 October)",
-                   "https://www.tradingkey.com/analysis/stocks/us-stocks/262262204-largest-companies-by-market-cap-october-2026-apple-nvidia-microsoft-google-tradingkey")],
-         related=None),
+    dict(id="ciie-2026-kazakhstan", date="5 Nov 2026", iso="2026-11-05", tag="Trade",
+         title="Kazakh companies sign about $100 million of export deals on the first day of China's import expo",
+         dek="About 40 Kazakh producers are showing food products at the China International Import Expo in Shanghai.",
+         body="<p>Kazakh companies signed agreements worth about $100 million on 5 November, the first day of the 9th China International Import Expo "
+              "(CIIE) in Shanghai, Kazakhstan's Ministry of Trade and Integration said. About 40 producers are in the national pavilion, showing "
+              "vegetable oils, flour, confectionery, dairy products and drinks. The expo runs until 10 November.</p>"
+              "<p>The trade minister, Arman Shakkaliyev, led the delegation. The same report puts trade between the two countries at $43.3 billion "
+              "in the first nine months of 2026, up 21.9% on a year earlier, after $48.7 billion in the whole of 2025.</p>",
+         why="The $48.7 billion for 2025 is the figure in Chinese customs data. Kazakhstan's own statistics show $34.1 billion for the same year; "
+             "the trade brief on this site explains the gap. Food is a small part of what Kazakhstan sells to China, which is mostly ores, oil and "
+             "metals, so deals like these are a test of whether exports can widen beyond raw materials.",
+         table=None,
+         sources=[("Trend, Kazakh companies sign $100 million in deals at China's international Expo (5 November 2026)",
+                   "https://www.trend.az/casia/kazakhstan/4243135.html")],
+         related=["kazakhstan-china-trade", "china-central-asia-2025"]),
+    dict(id="kmg-cdb-loan-nov-2026", date="2 Nov 2026", iso="2026-11-02", tag="Deals",
+         title="KazMunayGas gets a 15-year yuan credit line from China Development Bank for two gas pipelines",
+         dek="Up to 2.89 billion yuan, about $400 million, will pay for Kazakhstan's first main ethane and propane pipelines.",
+         body="<p>KazMunayGas and KMG PetroChem agreed a 15-year credit line of up to 2.89 billion yuan (about $400 million) with China Development "
+              "Bank, as reported on 2 November. The loan is backed by a corporate guarantee from Samruk-Kazyna, the state fund that controls KazMunayGas.</p>"
+              "<p>The money finances the construction contract for two pipelines in the Atyrau region, each about 210 km long, from the Tengiz gas "
+              "separation complex to Karabatan. The ethane line, 1.6 million tonnes a year, will feed a polyethylene plant that is under construction; "
+              "the propane line, 1.1 million tonnes a year, will feed the existing polypropylene plant. The contract was signed in November 2025 with a "
+              "consortium led by China Petroleum Pipeline Engineering.</p>",
+         why="The lender is a Chinese state bank, the loan is in yuan and the lead contractor is Chinese, so both the money and the construction "
+             "for this Kazakh project come from China. The pipelines supply plants that turn gas into plastics, which sell for more than the gas itself.",
+         table=None,
+         sources=[("Trend, Kazakhstan secures $400M loan from China Development Bank for pipelines (2 November 2026)",
+                   "https://www.trend.az/casia/kazakhstan/4242042.html")],
+         related=["kazmunaygas-2026"]),
     dict(id="air-astana-china-southern-jv", date="30 Oct 2026", iso="2026-10-30", tag="Deals",
          title="Air Astana and China Southern sign the first airline joint venture between Kazakhstan and China",
          dek="The airlines will coordinate schedules, widen codesharing and sell jointly.",
@@ -2279,36 +2294,24 @@ NEWS = [
                    "https://kz.kursiv.media/en/2026-10-23/engk-nknk-kazakhstans-central-bank-cuts-base-rate-may-hold-it-steady-for-rest-of-year/"),
                   ("National Bank of Kazakhstan", "https://nationalbank.kz/en")],
          related=["halyk-bank-2026"]),
-    dict(id="accenture-oct-2026", date="1 Oct 2026", iso="2026-10-01", tag="Markets",
-         title="Accenture shares jump 16% after results beat forecasts",
-         dek="The consulting firm's stock rose more than 22% during the day before closing up about 16%.",
-         body="<p>Accenture reported revenue of $18.68 billion for its fiscal fourth quarter, against $18.03 billion expected by analysts, and adjusted "
-              "earnings of $3.29 a share against $3.18. For the full fiscal year revenue grew 6%, to $74.2 billion. The company raised its quarterly "
-              "dividend by 5% and expects revenue and adjusted earnings per share to grow 3-6% in fiscal 2027.</p>"
-              "<p>Even after the rise the shares were still down more than 18% for the year, because investors fear that artificial intelligence will "
-              "replace some of the work consulting firms are paid for.</p>",
-         why="Accenture is the largest listed consulting and technology services firm, so its results are read as a test of whether companies are "
-             "still paying for outside advice and IT work while they adopt AI. See the Learn section for how consulting firms make money.",
-         table=None,
-         sources=[("CNBC, Accenture stock rallies after earnings beat expectations (1 October 2026)",
-                   "https://www.cnbc.com/2026/10/01/accenture-rallies-more-than-20percent-after-earnings-beat-heads-for-best-day-ever.html")],
-         related=None),
-    dict(id="mgm-people-bid-withdrawn", date="23 Sep 2026", iso="2026-09-23", tag="Failed deals",
-         title="Barry Diller's People Inc. drops its $18 billion bid to take MGM Resorts private",
-         dek="The offer of $48.30 a share was withdrawn after the two sides had agreed on a price.",
-         body="<p>People Inc., the company run by Barry Diller, withdrew its proposal to buy the shares of MGM Resorts it did not already own, at $48.30 a "
-              "share, about $18 billion in total. People already holds roughly a quarter of MGM. MGM's chief executive later said that the two sides had "
-              "agreed on a price, but People could not put together a group of investors on terms it wanted.</p>"
-              "<p>MGM's board said it would continue as a standalone company. In late October MGM ended the remaining talks and said no transaction was "
-              "being considered.</p>",
-         why="Deals can fail after the price is agreed. Taking a company private needs a buyer with enough money, usually raised from partners and "
-             "lenders; if that money does not come together, the deal stops, and the target's share price often falls back.",
-         table=None,
-         sources=[("The Nevada Independent, Billionaire Barry Diller ends his quest to acquire MGM Resorts",
-                   "https://thenevadaindependent.com/article/billionaire-barry-diller-ends-his-quest-to-acquire-mgm-resorts/"),
-                  ("Yogonet, MGM ends takeover talks with largest shareholder People Inc. after $18B bid withdrawal (29 October 2026)",
-                   "https://www.yogonet.com/international/news/2026/10/29/127077-mgm-ends-takeover-talks-with-largest-shareholder-people-inc-after-18b-bid-withdrawal")],
-         related=None),
+    dict(id="kazatomprom-egm-oct-2026", date="8 Oct 2026", iso="2026-10-08", tag="Deals",
+         title="Kazatomprom shareholders approve a uranium contract with a Chinese buyer and do not approve one with Russia's Uranium One",
+         dek="The Chinese contract received 88.63% of the votes cast; the Russian one received 5.39%.",
+         body="<p>Kazatomprom's shareholders voted on two uranium supply contracts at an extraordinary general meeting; absentee voting ended on "
+              "7 October. A contract to sell natural uranium concentrates to China's State Nuclear Uranium Resource Development Company was approved "
+              "with 88.63% of the votes cast, 6.49% against and 4.88% withheld.</p>"
+              "<p>A supply contract with Russia's Uranium One Group was not approved. It needed a simple majority, but 88.34% of the votes were withheld; "
+              "5.39% were in favour and 6.27% against. Holders of 99.21% of the voting shares took part.</p>",
+         why="Asia took 56% of Kazatomprom's uranium sales by volume in 2025, up from 45% in 2023 (company note). A contract large enough to need "
+             "shareholder approval shows that Chinese buyers remain central to what the company sells.",
+         table=(["Contract", "For", "Against", "Withheld"],
+                [["State Nuclear Uranium Resource Development Company (China)", "88.63%", "6.49%", "4.88%"],
+                 ["Uranium One Group (Russia)", "5.39%", "6.27%", "88.34%"]]),
+         sources=[("Trend, Kazatomprom shareholders approve uranium deal with Chinese company (8 October 2026)",
+                   "https://www.trend.az/casia/kazakhstan/4232484.html"),
+                  ("NucNet, Kazatomprom shareholders approve major Chinese uranium contract, reject deal with Russia (9 October 2026)",
+                   "https://www.nucnet.org/news/kazatomprom-shareholders-approve-major-chinese-uranium-contract-reject-deal-with-russia-10-5-2026")],
+         related=["kazatomprom-2025"]),
 ]
 
 
@@ -2339,23 +2342,24 @@ def _cr(key):
 
 
 NEWS_CREDITS = {
-    "news-apple": ("Daniel L. Lu", C + "Aerial_view_of_Apple_Park.jpg") + BYSA4,
-    "news-nvidia": ("Coolcaesar", C + "NVIDIA_Headquarters.jpg") + BYSA4,
-    "news-accenture": ("Roberto Fiadone", C + "Accenture_Argentina.jpg") + BYSA4,
     "learn-tenge2000": ("National Bank of Kazakhstan", C + "KZ2000KZT2012averse.jpg", "Public domain", "https://commons.wikimedia.org/wiki/Commons:Licensing"),
-    "news-mgm": ("Tuxyso", C + "Las_Vegas_MGM_Grand_at_day_2013.jpg") + BYSA3,
-    "article-aa": ARTICLE_PHOTOS["air-astana-2026"][5:7] + ARTICLE_PHOTOS["air-astana-2026"][7],
-    "article-cs": ARTICLE_PHOTOS["china-southern-2026"][5:7] + ARTICLE_PHOTOS["china-southern-2026"][7],
     "learn-nbk": ("МаратД", C + "The_building_of_the_National_Bank_of_the_Republic_of_Kazakhstan_in_Almaty.jpg") + BYSA4,
 }
+NEWS_CREDITS.update({ph[0]: ph[5:7] + ph[7] for ph in ARTICLE_PHOTOS.values()})   # report photos reused in News
 NEWS_VISUALS = {
-    "apple-nvidia-oct-2026": dict(
-        photos=[("news-apple", "Apple Park, Apple's headquarters in Cupertino"), ("news-nvidia", "Nvidia's headquarters in Santa Clara")],
-        stat=("$5.03 tn", "Apple's market value at the close on 30 October"),
-        plain="The stock market now values Apple slightly above Nvidia, so Apple is again the most valuable company listed on any exchange.",
-        chart=lambda: hbars([("Apple", 5.03), ("Nvidia", 4.93), ("Microsoft", 3.88), ("Alphabet", 3.44), ("Amazon", 2.60)], unit=" tn",
-                            colour=CHART_HI, fmt="${:.2f}"),
-        chart_title="Market value at the close on 30 October 2026, $ trillion"),
+    "ciie-2026-kazakhstan": dict(
+        photos=[("article-ca", "The Chinese terminal at the Khorgos border crossing with Kazakhstan"),
+                ("article-trade", "The railway at Alashankou, across the border from Dostyk in Kazakhstan")],
+        stat=("$43.3 bn", "Kazakhstan-China trade, January-September 2026, up 21.9%"),
+        plain="Kazakh food producers signed contracts to sell to Chinese buyers at a large trade fair in Shanghai.",
+        chart=lambda: hbars([("2025, full year", 48.7), ("2026, January-September", 43.3)], unit=" bn", colour=CHART_HI, fmt="${:.1f}"),
+        chart_title="Kazakhstan-China trade as reported, $ billion"),
+    "kmg-cdb-loan-nov-2026": dict(
+        photos=[("article-kmg", "The KazMunayGas headquarters in Astana")],
+        stat=("¥2.89 bn", "15-year credit line from China Development Bank, about $400 million"),
+        plain="Kazakhstan's national oil company borrowed from a Chinese state bank to build two pipelines that carry gas to plastics plants.",
+        chart=lambda: hbars([("Ethane pipeline", 1.6), ("Propane pipeline", 1.1)], unit=" mt", colour=CHART_HI, fmt="{:.1f}"),
+        chart_title="Capacity of the two pipelines, million tonnes a year"),
     "air-astana-china-southern-jv": dict(
         photos=[("article-aa", "An Air Astana Airbus A321LR"), ("article-cs", "A China Southern Boeing 787-9")],
         stat=("117", "scheduled flights a week between Kazakhstan and China, all airlines"),
@@ -2369,19 +2373,12 @@ NEWS_VISUALS = {
         chart=lambda: hbars([("Base rate before 23 October", 16.25), ("Base rate after 23 October", 15.75), ("Annual inflation", 9.3)],
                             unit="%", colour=CHART_HI, fmt="{:.2f}"),
         chart_title="Kazakhstan: base rate and inflation, October 2026, %"),
-    "accenture-oct-2026": dict(
-        photos=[("news-accenture", "Accenture's office in Argentina")],
-        stat=("+16%", "Accenture's share price on 1 October"),
-        plain="Accenture earned more than analysts expected, and its share price jumped in a single day.",
-        chart=lambda: diverge_bars([("Peak during the day", 22, "more than +22%"), ("At the close", 16, "about +16%"),
-                                    ("Since the start of 2026", -18, "more than −18%")]),
-        chart_title="Accenture's share price, 1 October 2026"),
-    "mgm-people-bid-withdrawn": dict(
-        photos=[("news-mgm", "The MGM Grand in Las Vegas")],
-        stat=("$18 bn", "offer withdrawn, $48.30 a share"),
-        plain="A billionaire's company offered to buy out a casino group, then pulled out because it could not raise the money with partners.",
-        chart=lambda: stack_bar([("Already owned by People Inc.", 26, CHART_HI), ("Shares the offer was for", 74, GREY)]),
-        chart_title="MGM Resorts: what the offer covered, % of shares"),
+    "kazatomprom-egm-oct-2026": dict(
+        photos=[("article-kap", "Drilling wells at the Inkai uranium mine in Kazakhstan")],
+        stat=("88.63%", "of votes cast for the contract with the Chinese buyer"),
+        plain="Kazatomprom's owners agreed to a large uranium sale to a Chinese company and did not agree to one with a Russian company.",
+        chart=lambda: hbars([("Contract with the Chinese buyer", 88.63), ("Contract with Uranium One", 5.39)], unit="%", colour=CHART_HI, fmt="{:.2f}"),
+        chart_title="Votes in favour, % of votes cast"),
 }
 
 
@@ -2430,9 +2427,9 @@ news_tags = sorted({n["tag"] for n in NEWS})
 ticker = "".join(f'<a href="#{n["id"]}"><b>{NEWS_VISUALS[n["id"]]["stat"][0]}</b><span>{NEWS_VISUALS[n["id"]]["stat"][1]}</span></a>' for n in NEWS)
 news = f'''<section class="nw-top"><div class="wrap">
 <div class="label">News</div>
-<h1>Markets, deals and rankings</h1>
-<p>What moved in world and Central Asian finance, shown with the figures behind it: deals that collapse, shares that jump or fall,
-changes at the top of company rankings and central bank decisions. Each brief has a chart, a plain-language summary and its sources.</p>
+<h1>Kazakhstan and China: deals, trade and rates</h1>
+<p>Deals, financing, trade figures and central bank decisions that affect the companies and trade flows covered on this site.
+Each brief has a chart, a plain-language summary and its sources.</p>
 <div class="nw-ticker">{ticker}</div>
 <div class="filters nw-filters" data-g="news"><button class="on" data-f="all">All <span>{len(NEWS)}</span></button>{"".join(f'<button data-f="{_anchor(t)}">{t} <span>{sum(n["tag"] == t for n in NEWS)}</span></button>' for t in news_tags)}</div>
 </div></section>
@@ -2441,8 +2438,8 @@ changes at the top of company rankings and central bank decisions. Each brief ha
 <p class="table-note">Briefs are written from the sources listed with each one. Figures are as reported on the date shown and are not updated afterwards. Not investment advice.</p>
 </div></section>'''
 
-page("news.html", "Finance news briefs: Kazakhstan, China and world markets · Steppe & Silk Research", news, "news.html",
-     "Briefs on world and Central Asian finance: failed deals, sharp share moves, company rankings and central bank decisions.")
+page("news.html", "Kazakhstan-China deals, trade and rates: news briefs · Steppe & Silk Research", news, "news.html",
+     "Briefs on deals, financing, trade figures and central bank decisions that link Kazakhstan, Central Asia and China, each with its sources.")
 
 for _r in REPORTS:  # finish each report's sidebar: related news, then related research with pictures
     _news = [n for n in NEWS if n["related"] and _r["slug"] in n["related"]]

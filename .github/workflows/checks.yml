@@ -1,0 +1,43 @@
+name: Checks
+
+# Runs on every pull request and on main: the published numbers must add up,
+# the committed pages must match what tools/build_site.py produces, and every page must pass the site checks.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  numbers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build packages
+        run: pip install openpyxl
+      - name: Recompute the published figures
+        run: python3 tools/check_numbers.py
+      - name: Pages are up to date with tools/build_site.py
+        run: |
+          python3 tools/build_site.py "$PWD"
+          git checkout -- data/
+          git diff --exit-code --stat
+
+  pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the browser
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP" playwright
+          NODE_PATH="$RUNNER_TEMP/node_modules" "$RUNNER_TEMP/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Links, contrast, layout and console errors on every page
+        run: NODE_PATH="$RUNNER_TEMP/node_modules" node tools/check_site.js "$PWD" "$RUNNER_TEMP/shots"
